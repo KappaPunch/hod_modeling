@@ -254,7 +254,7 @@ if __name__ == '__main__':
         ndim,
         LnProb,
         #args=(obsSep, obsACF, obsRR, invCov, paramDict['obs_number_density'], paramDict['err_obs_ndens']),
-        args=(obsSep, obsACF, obsRR, invCov, obsNdens, obsNdensErr, paramDict),
+        args=(obsSep, obsACF, obsRR, invCov, paramDict),
         pool=pool
     )
     stdout('MCMC sampler is created')
