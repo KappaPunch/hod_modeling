@@ -4,6 +4,7 @@
 import random
 import time, sys
 import numpy as np
+import pickle
 from ConfigParser import SafeConfigParser
 from scipy.interpolate import\
     InterpolatedUnivariateSpline as spline
@@ -14,17 +15,104 @@ import halomod as hm
 import emcee
 from emcee.interruptible_pool import InterruptiblePool
 
-
 # sections in main() function
-# (1): load in tables
-# (2): initialize halo model using halomod
-# (3): build probability functions for running mcmc
-# (4): generate inital points from random
-# (5): MAIN PART for mcmc process
-# (6): based on mcmc samples, derive some parameters like effective bias
-# (7): save results to files
+# (1) [_MON]: load in tables
+# (2) [_TUE]: initialize halo model using halomod
+# (3) [_WED]: build probability functions for running mcmc
+# (4) [_THU]: generate inital points from random
+# (5) [_FRI]: MAIN PART for mcmc process
+# (6) [_SAT]: based on mcmc samples, derive some parameters like effective bias
+# (7) [_SUN]: save results to files
 
-def main():
+if __name__ == '__main__':
+
+    def GetParams():
+    
+        params = InitializeParameters()
+    
+        filename = GetParamFilename()
+        fileParams = np.loadtxt(filename, dtype=np.str, usecols=(0,1))
+        fileParamsDict = {}
+        for idx in range(fileParams.shape[0]):
+            fileParamsDict[fileParams[idx,0]] = fileParams[idx,1]
+    
+        diffFromInit = set(params.keys()).difference(fileParamsDict.keys())
+        diffFromInit = list(diffFromInit)
+    
+        for pname, pvalue in params.items():
+            if pname in diffFromInit:
+                pass
+            else:
+                params[pname] = fileParamsDict[pname].astype(type(pvalue))
+    
+        return params
+    
+    def GetParamFilename():
+    
+        if len(sys.argv) == 2:
+            stdout('read parameter file: %s ' % sys.argv[1])
+            return sys.argv[1]
+        else:
+            sys.exit(
+                '%s... please input a parameter file by using command : \
+                $python halo_modeling [YOUR_PARAMETER_FILES]' % sys.argv[0]
+            )
+    
+    def InitializeParameters():
+    
+        return {
+                # FILES
+                'WORKING_DIRECTORY':      'YOUR_WORKING_DIRECTORY',
+                'INPUT_ACF':              'YOUR_CORRELATION_FILE',
+                'INPUT_ZD':               'YOUR_REDSHIFT_DISTRIBUTION',
+                'INPUT_COV':              'YOUR_COVARIANCE_MATRIX',
+                'OUTPUT_MCMC_SAMPLES':    'MCMC_CHAIN_SAMPLE',
+                'OUTPUT_ACF_SAMPLES':     'BEST_FIT_ACF_SAMPLE',
+                'OUTPUT_DERIVED_SAMPLES': 'DERIVED_PARAMETER_SAMPLE',
+                # MODELS
+                'VERSION':                       'v1',
+                'COSMOLOGY':                     'Planck15',
+                'HOD_MODEL':                     'Zheng05',
+                'HALO_MASS_FUNCTION':            'Tinker10',
+                'HALO_BIAS_FUNCTION':            'Tinker10',
+                'CONCENTRAION_TO_MASS_RELATION': 'Duffy08',
+                # SWITCHES
+                'APPLY_INTEGRAL_CONSTRAIN': True,
+                'LITTLE_H_INCUSION':        True,
+                # HOD settings
+                'obs_number_density': 0.0005,
+                'err_obs_ndens':      0.00002,
+                'z_mean':             1.12,
+                'z_min':              1.0,
+                'z_max':              1.25,
+                'z_num':              100,
+                'logM_min':           6,
+                'logM_max':           16,
+                'theta_min':          1./3600.,
+                'theta_max':          3600./3600.,
+                'theta_num':          60,
+                'logu_min':           -5.,
+                'logu_max':           2.5,
+                'unum':               150,
+                'log_Mmin_min':       11.,
+                'log_Mmin_max':       13.,
+                'log_Msat_max':       14.,
+                'log_Mcut_min':       9.,
+                'alpha_min':          0.7,
+                'alpha_max':          1.35,
+                'sigma_min':          0.25,
+                'sigma_max':          0.6,
+                # MCMC settings
+                'mcmc_steps':         1500,
+                'Ndim':               5,
+                'Nwalkers':           20,
+                'sample_rate':        10,
+                'burnin_rate':        0.25,
+                'Nprocessors':        1
+               }
+    
+    def stdout(message):
+        print('%s...  %s' % (sys.argv[0], message))
 
     paramDict = GetParams()
 
@@ -39,7 +127,7 @@ def main():
     acfModelFilename = paramDict['OUTPUT_ACF_SAMPLES']
     paramsFilename   = paramDict['OUTPUT_DERIVED_SAMPLES']
 
-    ## ==load in tables (1)==
+    ## ==load in tables (1) [_MON]==
     # main file: contains theta, acf, RR
     data = np.genfromtxt(wd+corrFilename)
     obsSep = data[:,0]
@@ -55,7 +143,7 @@ def main():
     stdout('Files are successfully loaded')
     ## ==finish loading==
     
-    ## ==initialize halo model (2)==
+    ## ==initialize halo model (2) [_TUE]==
     h = hm.AngularCF(hod_model=paramDict['HOD_MODEL'], z=paramDict['z_mean'])
     h.update(hod_params          =    {"central":True})
     h.update(hmf_model           =    paramDict['HALO_MASS_FUNCTION'])
@@ -82,9 +170,9 @@ def main():
     stdout('Halo model is established')
     ## ==halo model established==
 
-    ## ==build probability functions for mcmc (3)==
+    ## ==build probability functions for mcmc (3) [_WED]==
     # Likelihood function in log scale
-    def LnLikeli(th, obsSep, obsACF, obsRR, _invCov, obsNdens, obsNdensErr):
+    def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict):
         M_min, M_1, alpha, sig_logm, M_0 = th
         h.update(hod_params={"M_min":    M_min + np.log10(little_h),
                              "M_1":      M_1   + np.log10(little_h),
@@ -105,8 +193,9 @@ def main():
         modelNdens = h.mean_gal_den*(little_h**3)
 
         diffACF = obsACF - modelACF
-        lnACFLike   = -0.5 * np.sum(diffACF[:,np.newaxis] * _invCov* diffACF)
-        lnNdensLike = -0.5 * ((modelNdens - obsNdens)/obsNdensErr) * ((modelNdens - obsNdens)/obsNdensErr)
+        lnACFLike   = -0.5 * np.sum(diffACF[:,np.newaxis] * invCov* diffACF)
+        lnNdensLike = -0.5 * ((modelNdens - paramDict['obs_number_density'])/paramDict['err_obs_ndens']) *\
+                             ((modelNdens - paramDict['obs_number_density'])/paramDict['err_obs_ndens'])
     
         #obsACF_model_difference_trans = np.transpose(obsACF_model_difference)
         #log_liklihood_clustering = -0.5 * (obsACF_model.dot(cov_matrix_inverse.dot(obsACF_model_trans)))
@@ -128,15 +217,15 @@ def main():
             return -np.inf
     
     # Log posterior
-    def LnProb(th, obsSep, obsACF, obsRR, _invCov, obsNdens, obsNdensErr, paramDict):
+    def LnProb(th, obsSep, obsACF, obsRR, invCov, paramDict):
         prior = LnPrior(th, paramDict)
         if not np.isfinite(prior):
             return -np.inf
-        return prior + LnLikeli(th, obsSep, obsACF, obsRR, _invCov, obsNdens, obsNdensErr)
+        return prior + LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict)
     stdout('Probability functions are defined')
     ## ==functions defined==
     
-    ## ==generate initial points for mcmc (4)==
+    ## ==generate initial points for mcmc (4) [_THU]==
     mcmcNumSteps = paramDict['mcmc_steps']
     ndim         = paramDict['Ndim']
     nwalkers     = paramDict['Nwalkers']
@@ -155,7 +244,7 @@ def main():
     stdout('Initialized mcmc points')
     ## ==done==
     
-    ## ==main part for running mcmc (5)==
+    ## ==main part for running mcmc (5) [_FRI]==
     obsNdens = paramDict['obs_number_density']
     obsNdensErr = paramDict['err_obs_ndens']
 
@@ -165,10 +254,9 @@ def main():
         ndim,
         LnProb,
         #args=(obsSep, obsACF, obsRR, invCov, paramDict['obs_number_density'], paramDict['err_obs_ndens']),
-        args=(obsSep, obsACF, obsRR, invCov, obsNdens, obsNdensErr),
+        args=(obsSep, obsACF, obsRR, invCov, obsNdens, obsNdensErr, paramDict),
         pool=pool
     )
-    pool.close()
     stdout('MCMC sampler is created')
     
     t1 = time.time()
@@ -176,14 +264,15 @@ def main():
     t2 = time.time()
     print 'MCMC Finished'
     print 'MCMC took '+str(np.floor((t2-t1)/60))+' minutes' # Prints how long the MCMC fitting took
+    pool.close()
     
     nBurnin = int(mcmcNumSteps*burninRate)
 
     samples = sampler.chain[:,nBurnin:,:].reshape((-1, ndim))
-    LnProb  = sampler.LnProbability[:,nBurnin:].reshape(-1)
+    LnProb  = sampler.lnprobability[:,nBurnin:].reshape(-1)
     ## ==done mcmc==
     
-    ## ==now start to derive some parameters (6)==
+    ## ==now start to derive some parameters (6) [_SAT]==
     nsamples = nwalkers*mcmcNumSteps/sampleRate
     modelACFDistr   = np.zeros(shape=(len(obsSep), nsamples))
     effBiasDistr    = np.zeros(nsamples)
@@ -229,7 +318,7 @@ def main():
     ## ==parameters are derived==
     
     
-    ## ==save all derived parameters to file (7)==
+    ## ==save all derived parameters to file (7) [_SUN]==
     
     np.savetxt(wd+mcmcFilename+version+".dat", samples) # Save HOD param samples
     
@@ -242,94 +331,3 @@ def main():
     ##################################
     ##### end of main() function #####
     ##################################
-
-def GetParams():
-
-    params = InitializeParameters()
-
-    filename = GetParamFilename()
-    fileParams = np.loadtxt(filename, dtype=np.str, usecols=(0,1))
-    fileParamsDict = {}
-    for idx in range(fileParams.shape[0]):
-        fileParamsDict[fileParams[idx,0]] = fileParams[idx,1]
-
-    diffFromInit = set(params.keys()).difference(fileParamsDict.keys())
-    diffFromInit = list(diffFromInit)
-
-    for pname, pvalue in params.items():
-        if pname in diffFromInit:
-            pass
-        else:
-            params[pname] = fileParamsDict[pname].astype(type(pvalue))
-
-    return params
-
-def GetParamFilename():
-
-    if len(sys.argv) == 2:
-        stdout('read parameter file: %s ' % sys.argv[1])
-        return sys.argv[1]
-    else:
-        sys.exit(
-            '%s... please input a parameter file by using command : \
-            $python halo_modeling [YOUR_PARAMETER_FILES]' % sys.argv[0]
-        )
-
-def InitializeParameters():
-
-    return {
-            # FILES
-            'WORKING_DIRECTORY':      'YOUR_WORKING_DIRECTORY',
-            'INPUT_ACF':              'YOUR_CORRELATION_FILE',
-            'INPUT_ZD':               'YOUR_REDSHIFT_DISTRIBUTION',
-            'INPUT_COV':              'YOUR_COVARIANCE_MATRIX',
-            'OUTPUT_MCMC_SAMPLES':    'MCMC_CHAIN_SAMPLE',
-            'OUTPUT_ACF_SAMPLES':     'BEST_FIT_ACF_SAMPLE',
-            'OUTPUT_DERIVED_SAMPLES': 'DERIVED_PARAMETER_SAMPLE',
-            # MODELS
-            'VERSION':                       'v1',
-            'COSMOLOGY':                     'Planck15',
-            'HOD_MODEL':                     'Zheng05',
-            'HALO_MASS_FUNCTION':            'Tinker10',
-            'HALO_BIAS_FUNCTION':            'Tinker10',
-            'CONCENTRAION_TO_MASS_RELATION': 'Duffy08',
-            # SWITCHES
-            'APPLY_INTEGRAL_CONSTRAIN': True,
-            'LITTLE_H_INCUSION':        True,
-            # HOD settings
-            'obs_number_density': 0.0005,
-            'err_obs_ndens':      0.00002,
-            'z_mean':             1.12,
-            'z_min':              1.0,
-            'z_max':              1.25,
-            'z_num':              100,
-            'logM_min':           6,
-            'logM_max':           16,
-            'theta_min':          1./3600.,
-            'theta_max':          3600./3600.,
-            'theta_num':          60,
-            'logu_min':           -5.,
-            'logu_max':           2.5,
-            'unum':               150,
-            'log_Mmin_min':       11.,
-            'log_Mmin_max':       13.,
-            'log_Msat_max':       14.,
-            'log_Mcut_min':       9.,
-            'alpha_min':          0.7,
-            'alpha_max':          1.35,
-            'sigma_min':          0.25,
-            'sigma_max':          0.6,
-            # MCMC settings
-            'mcmc_steps':         1500,
-            'Ndim':               5,
-            'Nwalkers':           20,
-            'sample_rate':        10,
-            'burnin_rate':        0.25,
-            'Nprocessors':        1
-           }
-
-def stdout(message):
-    print('%s...  %s' % (sys.argv[0], message))
-
-if __name__ == '__main__':
-    main()
