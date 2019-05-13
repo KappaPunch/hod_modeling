@@ -186,8 +186,8 @@ if __name__ == '__main__':
     stdout('[MODEL] effective bias     = %f' % effBias)
     stdout('[MODEL] satellite fraction = %f' % fsat)
 
-    np.savetxt(paramDict['OUTPUT_ACF_PTS'], np.c_[obsSep, modelACF, ic])
-    np.savetxt(paramDict['OUTPUT_HON_PTS'], np.c_[np.log10(h.m), modelNtot, modelNcen, modelNsat])
+    np.savetxt(paramDict['OUTPUT_ACF_PTS']+'.'+version+'.dat', np.c_[obsSep, modelACF, ic])
+    np.savetxt(paramDict['OUTPUT_HON_PTS']+'.'+version+'.dat', np.c_[np.log10(h.m), modelNtot, modelNcen, modelNsat])
 
     if not paramDict['PTS_ONLY']:
 
