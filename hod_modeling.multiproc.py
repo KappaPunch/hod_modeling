@@ -4,8 +4,6 @@
 import random
 import time, sys
 import numpy as np
-import pickle
-from ConfigParser import SafeConfigParser
 from scipy.interpolate import\
     InterpolatedUnivariateSpline as spline
 from astropy.cosmology import default_cosmology
