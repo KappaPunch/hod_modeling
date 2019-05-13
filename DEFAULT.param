@@ -1,0 +1,99 @@
+# this is a .ini demo file.
+
+# === all the input/output file parameters are set in this section ===
+## Definition of options (DOO):
+# WORKING_DIRECTORY      : Working directory. Please make sure that all required files are placed under this directory.
+# INPUT_ACF              : The observed angular correlation file. The order of columns : # theta omega(theta) RR(theta) ; all in linear scales
+# INPUT_ZD               : The observed redshift distribution file. The order of columns : # z n(z) ; all in linear scales
+# INPUT_COV              : The observed covariance matrix file. Not yet determine what format should be...
+# OUTPUT_MCMC_SAMPLES    : The fitting result file. The order of columns : # log_Mmin log_Msat alpha sigma log_Mcut
+# OUTPUT_DERIVED_SAMPLES : The derived parameter file. The order of columns : # fsat bias_eff Mh_eff ndens_model
+WORKING_DIRECTORY        /array/users/sclin/HALO/
+INPUT_ACF                demo_correlation_function.dat
+INPUT_ZD                 demo_redshift_distribution.dat
+INPUT_COV                demo_fake_cov.dat
+OUTPUT_MCMC_SAMPLES      mcmc_sample_test
+OUTPUT_ACF_SAMPLES       acf_sample_test
+OUTPUT_DERIVED_SAMPLES   derived_params_test
+
+# === switches for some conventions === 
+## DOO:
+# 1 for True; 0 for False
+# APPLY_INTEGRAL_CONSTRAIN : The ACF is corrected by I.C. or not. If True, then the RR information must be provided for calculating I.C.
+#                            If False, the code will assume that the ACF has been corrected by I.C.
+# LITTLE_H_INCUSION        : All quantities set in this config file included the little_h or not. True for units like <Msun/h>; False for <Msun>, etc.
+APPLY_INTEGRAL_CONSTRAIN   1
+LITTLE_H_INCUSION          1
+
+# === Models for setting up the halo model ===
+# each option in this section provides many models separated by space.
+# The code will take the first term as the input model. So please put the desired model at the first place.
+## DOO:
+# VERSION                       : Fitting version. The label in case that we are going to run many many times...
+# COSMOLOGY                     : Several choice.
+# HOD_MODEL                     : For five parameterization HOD, use Zheng05.
+# HALO_MASS_FUNCTION            : The halo mass function. I only put some mass function models here, but hmf itself provide even more.
+#                                 So if these mass functions do not meet your requirement, go check the hmf wiki-page for other mass functions.
+# HALO_BIAS_FUNCTION            : The linear bias function. Currently, we only consider the scale-independent bias.
+# CONCENTRAION_TO_MASS_RELATION : The concentration to mass relation.
+VERSION                          v1
+COSMOLOGY                        Planck15 WMAP5 WMAP7 WMAP9 Planck13
+HOD_MODEL                        Zheng05
+HALO_MASS_FUNCTION               Tinker10 Behroozi PS SMT Tinker08 Bhattacharya
+HALO_BIAS_FUNCTION               Tinker10 Mo96 Jing98 ST99 SMT01 Seljak04 Tinker05 Mandelbaum05 Manera10
+CONCENTRAION_TO_MASS_RELATION    Duffy08 Bullock01 Zehavi11 Ludlow2016
+
+# === Setup the detailed HOD parameters here === 
+## DOO: This section, all the detailed descriptions are placed at their relavent position.
+
+# Observed number density and its error, for construting Likelihood function
+obs_number_density   0.0005
+err_obs_ndens        0.00002
+
+# either mean or median values of redshift, the parameter name is 'z_mean'
+# minimum and maximum are corresponding to the redshift distribution of samples
+z_mean               1.12
+z_min                1.0
+z_max                1.25
+z_num                100
+
+# The mass range of halo mass function
+logM_min             6
+logM_max             16
+
+# angular separation. in degrees.
+theta_min            0.00027
+theta_max            1.
+theta_num            60
+
+# radial separations of two galaxies under assumptions of Limber approx. and flat approx. Could check appendix of Coupon et al. 2012 (A&A, 542, A5)
+logu_min             -5.
+logu_max             2.5
+unum                 150
+
+# here are the range of priors.
+log_Mmin_min       11.
+log_Mmin_max       13.
+# the Msat should never be lower than Mmin that why there is no log_Msat_min. log_Msat_min will be set the same as log_Mmin, once latter is decided.
+log_Msat_max       14.
+# Similarly, the log_Mcut_max is set to be the log_Msat once log_Msat is decided.
+log_Mcut_min       9.
+alpha_min          0.7
+alpha_max          1.35
+sigma_min          0.25
+sigma_max          0.6
+
+# === MCMC === 
+## DOO:
+# mcmc_steps  : Number of MCMC steps. This term should be greater than 1000
+# Ndim        : Dimension of parameters. For standard HOD, it is 5
+# Nwalkers    : Number of MCMC walkers (specially-defined parameter for emcee algorithm), should be greater than twice of Ndim.
+# sample_rate : Portion of full mcmc sample for calculating derived parameters (bias_eff, etc.), should be a positive integer factor of ndim * Nwalkers
+# burnin_rate : define how many portion of mcmc samples to be burn-in samples(will be disgared).
+# Nprocessors : Number of cores used in the fitting process.
+mcmc_steps  500
+Ndim        5
+Nwalkers    10
+sample_rate 10
+burnin_rate 0.25
+Nprocessors 10

@@ -1,0 +1,48 @@
+#!/usr/bin/bash
+
+### Set the job name
+#PBS -N SPIOLER_ALERT
+### Run in the queue named "default" - this is set up by looking at `qmgr -c "p s"`
+#PBS -q ichiro2
+### Use the bourne shell
+#PBS -S /bin/sh
+### Inherit the environment
+#PBS -V
+
+### Optionally set the destination for your program's output
+#PBS -e localhost:$PBS_O_WORKDIR/pbs_log/"$PBS_JOBID".err
+#PBS -o localhost:$PBS_O_WORKDIR/pbs_log/"$PBS_JOBID".out
+#PBS -l nodes=1:ppn=10
+#PBS -l mem=200gb
+#PBS -l walltime=100:00:00
+
+# Calculate the number of processors allocated to this run.
+NPROCS=`wc -l < $PBS_NODEFILE`
+# Calculate the number of nodes allocated.
+NNODES=`uniq $PBS_NODEFILE | wc -l`
+### Switch to the working directory; by default TORQUE launches processes
+### from your home directory.
+cd $PBS_O_WORKDIR
+### Display the job context
+
+echo
+echo "Mission           : CALCULATE DNDZ FOR CLEAN SAMPLE"
+echo "Date              : `date`"
+echo "Working directory : $PBS_O_WORKDIR"
+echo "Running on host   : `hostname`"
+echo "Directory         : `pwd`"
+echo
+echo "Using ${NPROCS} processors across ${NNODES} nodes"
+echo
+
+### OpenMPI will automatically launch processes on all allocated nodes.
+MPIRUN=`which mpirun`
+${MPIRUN} -machinefile $PBS_NODEFILE -np ${NPROCS} python hod_modeling.v2_mpi.py test_mpi.param > test_param."$PBS_JOBID".log
+#${MPIRUN} -machinefile $PBS_NODEFILE -np ${NPROCS} python halo_modelling_HELP.use_MPIpool.py > ./Inrealtime_log/"$PBS_JOBID".log
+
+#time python hod_modeling.v_serial.py test_serial.param
+#time python hod_modeling.v_multi.py DEFAULT.param > test_param."$PBS_JOBID".log
+#time python halo_modelling_HELP.use_MPIpool.py > ./Inrealtime_log/"$PBS_JOBID".log
+#time python halo_modelling_HELP.use_pool.py
+
+echo "JOB DONE"
