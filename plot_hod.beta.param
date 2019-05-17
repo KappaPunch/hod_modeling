@@ -24,7 +24,7 @@ OUTPUT_HON_PTS           hon_pts_test
 # PTS_ONLY                 : If this is set to be true (1), then the code will only output files containing model points.
 #                            Otherwise, it will try to brown-nose you by making some not-so-beautiful plots.
 # LITTLE_H_INCUSION        : All quantities set in this config file included the little_h or not. True for units like <Msun/h>; False for <Msun>, etc.
-PTS_ONLY                   1
+PTS_ONLY                   0
 LITTLE_H_INCUSION          1
 
 # === Models for setting up the halo model ===
@@ -58,7 +58,7 @@ err_obs_ndens        0.00015305
 # either mean or median values of redshift, the parameter name is 'z_mean'
 # minimum and maximum are corresponding to the redshift distribution of samples
 z_mean               1.12
-z_sig                0.02
+z_sig                0.25
 z_min                1.0
 z_max                1.25
 z_num                100
@@ -74,7 +74,7 @@ theta_num            60
 
 # radial separations of two galaxies under assumptions of Limber approx. and flat approx. Could check appendix of Coupon et al. 2012 (A&A, 542, A5)
 logu_min             -5.
-logu_max             2.5
+logu_max             1.5
 unum                 500
 
 # hod parameters
