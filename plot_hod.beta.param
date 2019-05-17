@@ -1,0 +1,85 @@
+# this is a .ini demo file.
+
+# === all the input/output file parameters are set in this section ===
+## Definition of options (DOO):
+# WORKING_DIRECTORY      : Working directory. Please make sure that all required files are placed under this directory.
+# INPUT_ACF              : The observed angular correlation file. The order of columns : # theta omega(theta) RR(theta) ; all in linear scales
+# INPUT_ZD               : The observed redshift distribution file. The order of columns : # z n(z) ; all in linear scales
+# INPUT_COV              : The observed covariance matrix file. I assume it is in the format of (20 * 20) ascii file.
+#                          The errorbars are calculated by taking the square root of diagonal terms of this matrix.
+# OUTPUT_ACF_PLOT        : This can give you a preliminary figure of correlation functions, both from data and model.
+# OUTPUT_ACF_PTS         : The modeled ACF file. The columns are : theta omega(theta) IC(theta)
+# OUTPUT_HON_PLOT        : This also give you a glimpse of how Halo Occupation Numbers look like.
+# OUTPUT_HON_PTS         : The HON file. The columns are: log(M_h) N_tot N_cen N_sat
+WORKING_DIRECTORY        /array/users/sclin/HALO/
+INPUT_ZD                 demo_redshift_distribution.dat
+OUTPUT_ACF_PLOT          acf_plot_test
+OUTPUT_ACF_PTS           acf_pts_test
+OUTPUT_HON_PLOT          hon_plot_test
+OUTPUT_HON_PTS           hon_pts_test
+
+# === switches for some conventions === 
+## DOO:
+# 1 for True; 0 for False
+# PTS_ONLY                 : If this is set to be true (1), then the code will only output files containing model points.
+#                            Otherwise, it will try to brown-nose you by making some not-so-beautiful plots.
+# LITTLE_H_INCUSION        : All quantities set in this config file included the little_h or not. True for units like <Msun/h>; False for <Msun>, etc.
+PTS_ONLY                   1
+LITTLE_H_INCUSION          1
+
+# === Models for setting up the halo model ===
+# each option in this section provides many models separated by space.
+# The code will take the first term as the input model. So please put the desired model at the first place.
+## DOO:
+# VERSION                       : Model version. The label in case that we are going to run many many times...
+# COSMOLOGY                     : Several choice.
+# HOD_MODEL                     : For five parameterization HOD, use Zheng05.
+# HALO_MASS_FUNCTION            : The halo mass function. I only put some mass function models here, but hmf itself provide even more.
+#                                 So if these mass functions do not meet your requirement, go check the hmf wiki-page for other mass functions.
+# HALO_BIAS_FUNCTION            : The linear bias function. Currently, we only consider the scale-independent bias.
+# CONCENTRAION_TO_MASS_RELATION : The concentration to mass relation.
+# REDSHIFT_DISTR                : Set 'User' for user-provided redshift distribution file. The code also provide two types of distribution.
+# 								  Flat for the uniform; Gaussian will take z_mean as the mean and the (z_max - z_min) / 2 as the std.
+VERSION                          v2
+COSMOLOGY                        Planck15 WMAP5 WMAP7 WMAP9 Planck13
+HOD_MODEL                        Zheng05
+HALO_MASS_FUNCTION               Tinker10 Behroozi PS SMT Tinker08 Bhattacharya
+HALO_BIAS_FUNCTION               Tinker10 Mo96 Jing98 ST99 SMT01 Seljak04 Tinker05 Mandelbaum05 Manera10
+CONCENTRAION_TO_MASS_RELATION    Duffy08 Bullock01 Zehavi11 Ludlow2016
+REDSHIFT_DISTR                   Gaussian User Flat Gaussian
+
+# === Setup the detailed HOD parameters here === 
+## DOO: This section, all the detailed descriptions are placed at their relavent position.
+
+# Observed number density and its error, for construting Likelihood function
+obs_number_density   0.0017316
+err_obs_ndens        0.00015305
+
+# either mean or median values of redshift, the parameter name is 'z_mean'
+# minimum and maximum are corresponding to the redshift distribution of samples
+z_mean               1.12
+z_sig                0.02
+z_min                1.0
+z_max                1.25
+z_num                100
+
+# The mass range of halo mass function
+logM_min             6
+logM_max             16
+
+# angular separation. in degrees.
+theta_min            0.00027
+theta_max            1.
+theta_num            60
+
+# radial separations of two galaxies under assumptions of Limber approx. and flat approx. Could check appendix of Coupon et al. 2012 (A&A, 542, A5)
+logu_min             -5.
+logu_max             2.5
+unum                 500
+
+# hod parameters
+log_Mmin       12.2
+log_Msat       13.4
+log_Mcut       11.1
+alpha          1.15
+sigma          0.535
