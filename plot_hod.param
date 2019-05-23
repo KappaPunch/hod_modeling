@@ -13,22 +13,24 @@
 # OUTPUT_HON_PTS         : The HON file. The columns are: log(M_h) N_tot N_cen N_sat
 WORKING_DIRECTORY        /array/users/sclin/HALO/
 INPUT_ACF                demo_correlation_function.dat
-INPUT_ZD                 demo_redshift_distribution.dat
 INPUT_COV                demo_fake_cov.dat
+INPUT_ZD                 demo_redshift_distribution.dat
 OUTPUT_ACF_PLOT          acf_plot_test
 OUTPUT_ACF_PTS           acf_pts_test
 OUTPUT_HON_PLOT          hon_plot_test
-OUTPUT_HON_PTS           hon_plot_test
+OUTPUT_HON_PTS           hon_pts_test
 
 # === switches for some conventions === 
 ## DOO:
 # 1 for True; 0 for False
 # PTS_ONLY                 : If this is set to be true (1), then the code will only output files containing model points.
 #                            Otherwise, it will try to brown-nose you by making some not-so-beautiful plots.
+# MODEL_ONLY               : Set this to be false if you want to compare the model with your measurement.
 # APPLY_INTEGRAL_CONSTRAIN : The ACF is corrected by I.C. or not. If True, then the RR information must be provided for calculating I.C.
 #                            If False, the code will assume that the ACF has been corrected by I.C.
 # LITTLE_H_INCUSION        : All quantities set in this config file included the little_h or not. True for units like <Msun/h>; False for <Msun>, etc.
 PTS_ONLY                   0
+MODEL_ONLY                 1
 APPLY_INTEGRAL_CONSTRAIN   0
 LITTLE_H_INCUSION          1
 
@@ -36,19 +38,22 @@ LITTLE_H_INCUSION          1
 # each option in this section provides many models separated by space.
 # The code will take the first term as the input model. So please put the desired model at the first place.
 ## DOO:
-# VERSION                       : Model version. The label in case that we are going to run many many times...
-# COSMOLOGY                     : Several choice.
+# VERSION                       : Label the distinction of multiple runs. It can be any string you want. 
+# COSMOLOGY                     : Cosmology model from different observations.
 # HOD_MODEL                     : For five parameterization HOD, use Zheng05.
-# HALO_MASS_FUNCTION            : The halo mass function. I only put some mass function models here, but hmf itself provide even more.
+# HALO_MASS_FUNCTION            : The halo mass function. I only put some mass function models here, but hmf itself provides even more.
 #                                 So if these mass functions do not meet your requirement, go check the hmf wiki-page for other mass functions.
 # HALO_BIAS_FUNCTION            : The linear bias function. Currently, we only consider the scale-independent bias.
 # CONCENTRAION_TO_MASS_RELATION : The concentration to mass relation.
-VERSION                          v2
+# REDSHIFT_DISTR                : Set 'User' for user-provided redshift distribution file. The code also provides two types of distribution.
+# 								  Flat for the uniform; Gaussian will take z_mean as the mean and z_sig as the std.
+VERSION                          check_flat
 COSMOLOGY                        Planck15 WMAP5 WMAP7 WMAP9 Planck13
-HOD_MODEL                        Zheng05
+HOD_MODEL                        Zheng05 Contreras13
 HALO_MASS_FUNCTION               Tinker10 Behroozi PS SMT Tinker08 Bhattacharya
 HALO_BIAS_FUNCTION               Tinker10 Mo96 Jing98 ST99 SMT01 Seljak04 Tinker05 Mandelbaum05 Manera10
 CONCENTRAION_TO_MASS_RELATION    Duffy08 Bullock01 Zehavi11 Ludlow2016
+REDSHIFT_DISTR                   User Flat Gaussian
 
 # === Setup the detailed HOD parameters here === 
 ## DOO: This section, all the detailed descriptions are placed at their relavent position.
@@ -60,13 +65,14 @@ err_obs_ndens        0.00015305
 # either mean or median values of redshift, the parameter name is 'z_mean'
 # minimum and maximum are corresponding to the redshift distribution of samples
 z_mean               1.12
+z_sig                0.05
 z_min                1.0
 z_max                1.25
 z_num                100
 
 # The mass range of halo mass function
-logM_min             6
-logM_max             16
+logM_min             6.
+logM_max             16.
 
 # angular separation. in degrees.
 theta_min            0.00027
@@ -75,12 +81,23 @@ theta_num            60
 
 # radial separations of two galaxies under assumptions of Limber approx. and flat approx. Could check appendix of Coupon et al. 2012 (A&A, 542, A5)
 logu_min             -5.
-logu_max             2.5
+logu_max             1.
 unum                 500
 
 # hod parameters
-log_Mmin       12.2
+# For Zheng05 model, these parameters are required: log_Mmin, log_Msat, log_Mcut, alpha, sigma
+# For Contreras13 model, these parameters are required: log_Mc, log_Mmin, alpha, sigma, Fca, Fcb, Fs, delta, x
+# Please check Coupon et al. 2012 for the naming of HOD parameters of Zheng05 model.
+# And Contreras et al. 2013 (MNRAS, 432, 2717) for Contreras13.
+# Be awared that some parameters (with '#both' at the end of the line) are used in both models, but they have different meanings.
+log_Mmin       12.2 #both
 log_Msat       13.4
 log_Mcut       11.1
-alpha          1.15
-sigma          0.535
+alpha          1.15 #both
+sigma          0.535 #both
+log_Mc         11.6222
+Fca            0.5
+Fcb            0.
+Fs             1.
+delta          1.
+x              1.

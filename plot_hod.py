@@ -5,6 +5,7 @@ import random
 import time, sys
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import norm
 from scipy.interpolate import\
     InterpolatedUnivariateSpline as spline
 from astropy.cosmology import default_cosmology
@@ -22,6 +23,18 @@ import halomod as hm
 # (7) [_SUN]: save results to files
 
 if __name__ == '__main__':
+
+    def GenerateNz(zmean, sigma, zmin, zmax, flag):
+        znum = 100
+        z = np.linspace(zmin, zmax, znum)
+
+        if flag == 'Flat':
+            nz = np.ones(znum)
+        if flag == 'Gaussian':
+            rv = norm(loc=zmean, scale=sigma)
+            nz = rv.pdf(z)
+
+        return spline(z, nz)
 
     def GetParams():
     
@@ -62,45 +75,54 @@ if __name__ == '__main__':
     
         return {
                 # FILES
-                'WORKING_DIRECTORY':      'YOUR_WORKING_DIRECTORY',
-                'INPUT_ACF':              'FILE_NAME_PLS',
-                'INPUT_ZD':               'FILE_NAME_PLS',
-                'INPUT_COV':              'FILE_NAME_PLS',
-                'OUTPUT_ACF_PLOT':        'FILE_NAME_PLS',
-                'OUTPUT_ACF_PTS':         'FILE_NAME_PLS',
-                'OUTPUT_HON_PLOT':        'FILE_NAME_PLS',
-                'OUTPUT_HON_PTS':         'FILE_NAME_PLS',
+                'WORKING_DIRECTORY' : 'YOUR_WORKING_DIRECTORY' ,
+                'INPUT_ACF'         : 'FILE_NAME_PLS'          ,
+                'INPUT_ZD'          : 'FILE_NAME_PLS'          ,
+                'INPUT_COV'         : 'FILE_NAME_PLS'          ,
+                'OUTPUT_ACF_PLOT'   : 'FILE_NAME_PLS'          ,
+                'OUTPUT_ACF_PTS'    : 'FILE_NAME_PLS'          ,
+                'OUTPUT_HON_PLOT'   : 'FILE_NAME_PLS'          ,
+                'OUTPUT_HON_PTS'    : 'FILE_NAME_PLS'          ,
                 # MODELS
-                'VERSION':                       'v1',
-                'COSMOLOGY':                     'Planck15',
-                'HOD_MODEL':                     'Zheng05',
-                'HALO_MASS_FUNCTION':            'Tinker10',
-                'HALO_BIAS_FUNCTION':            'Tinker10',
-                'CONCENTRAION_TO_MASS_RELATION': 'Duffy08',
+                'VERSION'                       : 'v1'       ,
+                'COSMOLOGY'                     : 'Planck15' ,
+                'HOD_MODEL'                     : 'Zheng05'  , 
+                'HALO_MASS_FUNCTION'            : 'Tinker10' ,
+                'HALO_BIAS_FUNCTION'            : 'Tinker10' ,
+                'CONCENTRAION_TO_MASS_RELATION' : 'Duffy08'  ,
+                'REDSHIFT_DISTR'                : 'Flat'     ,
                 # SWITCHES
-                'PTS_ONLY':                 False,
-                'APPLY_INTEGRAL_CONSTRAIN': True,
-                'LITTLE_H_INCUSION':        True,
+                'PTS_ONLY'                 : False ,
+                'MODEL_ONLY'               : True  ,
+                'APPLY_INTEGRAL_CONSTRAIN' : True  ,
+                'LITTLE_H_INCUSION'        : True  ,
                 # HOD settings
-                'obs_number_density': 0.0005,
-                'err_obs_ndens':      0.00002,
-                'z_mean':             1.12,
-                'z_min':              1.0,
-                'z_max':              1.25,
-                'z_num':              100,
-                'logM_min':           6,
-                'logM_max':           16,
-                'theta_min':          1./3600.,
-                'theta_max':          3600./3600.,
-                'theta_num':          60,
-                'logu_min':           -5.,
-                'logu_max':           2.5,
-                'unum':               150,
-                'log_Mmin':       12.2,
-                'log_Msat':       14.,
-                'log_Mcut':       9.,
-                'alpha':          0.7,
-                'sigma':          0.25,
+                'obs_number_density' : 0.0005      ,
+                'err_obs_ndens'      : 0.00002     ,
+                'z_mean'             : 1.12        ,
+                'z_sig'              : 0.45        ,
+                'z_min'              : 1.0         ,
+                'z_max'              : 1.25        ,
+                'z_num'              : 100         ,
+                'logM_min'           : 6.          ,
+                'logM_max'           : 16.         ,
+                'theta_min'          : 1./3600.    ,
+                'theta_max'          : 3600./3600. ,
+                'theta_num'          : 60          ,
+                'logu_min'           : -5.         ,
+                'logu_max'           : 2.5         ,
+                'unum'               : 150         ,
+                'log_Mmin'           : 12.2        , # this term will be double-used
+                'log_Msat'           : 14.         ,
+                'log_Mcut'           : 9.          ,
+                'alpha'              : 0.7         , # this term will be double-used
+                'sigma'              : 0.25        , # this term will be double-used
+                'log_Mc'             : 11.6222     ,
+                'Fca'                : 0.5         ,
+                'Fcb'                : 0.          ,
+                'Fs'                 : 1.          ,
+                'delta'              : 1.          ,
+                'x'                  : 1.          ,
                }
     
     def stdout(message):
@@ -120,17 +142,27 @@ if __name__ == '__main__':
     honModelFilename = paramDict['OUTPUT_HON_PTS']
     honModelPlotname = paramDict['OUTPUT_HON_PLOT']
 
-    data = np.genfromtxt(wd+corrFilename)
-    obsSep = data[:,0]
-    obsACF = data[:,1]
-    obsRR  = data[:,2]
+    if not paramDict['MODEL_ONLY']:
+        data = np.genfromtxt(wd+corrFilename)
+        obsSep = data[:,0]
+        obsACF = data[:,1]
+        obsRR  = data[:,2]
 
-    nz = np.loadtxt(wd+rdFilename)
-    redshift_distribution = spline(nz[:,0], nz[:,1])
+        cov = np.loadtxt(wd+covFilename)
+        obsACFerr = np.sqrt(cov.diagonal())
+        invCov = np.linalg.inv(cov)
 
-    cov = np.loadtxt(wd+covFilename)
-    obsACFerr = np.sqrt(cov.diagonal())
-    invCov = np.linalg.inv(cov)
+    if paramDict['REDSHIFT_DISTR'] == 'User':
+        nz = np.loadtxt(wd+rdFilename)
+        redshift_distribution = spline(nz[:,0], nz[:,1])
+    else:
+        print 'ohyeah'
+        redshift_distribution = GenerateNz(paramDict['z_mean'],
+                                           paramDict['z_sig'] ,
+                                           paramDict['z_min'] ,
+                                           paramDict['z_max'] ,
+                                           paramDict['REDSHIFT_DISTR'])
+
 
     h = hm.AngularCF(hod_model=paramDict['HOD_MODEL'], z=paramDict['z_mean'])
     h.update(hod_params          =    {"central":True})
@@ -150,17 +182,32 @@ if __name__ == '__main__':
 
     cosmo_model = default_cosmology.get_cosmology_from_string(paramDict['COSMOLOGY'])
     h.update(cosmo_model         =    cosmo_model)
+    stdout('[MODEL] halo model is set ... Assume %s model' % paramDict['HOD_MODEL'])
     
     if paramDict['LITTLE_H_INCUSION']:
         little_h = h.cosmo.H0.value/100.
     else:
         little_h = 1.
+    stdout('[UNIT] Include little_h or not : %s' % paramDict['LITTLE_H_INCUSION'])
 
-    h.update(hod_params={"M_min":    paramDict['log_Mmin'] + np.log10(little_h),
-                         "M_1":      paramDict['log_Msat'] + np.log10(little_h),
-                         "alpha":    paramDict['alpha']                        ,
-                         "sig_logm": paramDict['sigma']                        ,
-                         "M_0":      paramDict['log_Mcut'] + np.log10(little_h)})
+    if paramDict['HOD_MODEL'] == 'Zheng05':
+        h.update(hod_params={'M_min'    : paramDict['log_Mmin'] + np.log10(little_h) ,
+                             'M_1'      : paramDict['log_Msat'] + np.log10(little_h) ,
+                             'alpha'    : paramDict['alpha'   ]                      ,
+                             'sig_logm' : paramDict['sigma'   ]                      ,
+                             'M_0'      : paramDict['log_Mcut'] + np.log10(little_h)
+                             })
+    if paramDict['HOD_MODEL'] == 'Contreras13':
+        h.update(hod_params={'M_min'    : paramDict['log_Mc'  ] + np.log10(little_h) ,
+                             'M_1'      : paramDict['log_Mmin'] + np.log10(little_h) ,
+                             'alpha'    : paramDict['alpha'   ]                      ,
+                             'sig_logm' : paramDict['sigma'   ]                      ,
+                             'fca'      : paramDict['Fca'     ]                      ,
+                             'fcb'      : paramDict['Fcb'     ]                      ,
+                             'fs'       : paramDict['Fs'      ]                      ,
+                             'delta'    : paramDict['delta'   ]                      ,
+                             'x'        : paramDict['x'       ]
+                             })
     
     modelm       = h.m/little_h
     modelNcen    = h.n_cen
@@ -168,14 +215,26 @@ if __name__ == '__main__':
     modelNtot    = h.n_tot
     modelSep     = np.degrees(h.theta)
     modelACF     = h.angular_corr_gal
-    modelACF_spl = spline(modelSep, modelACF, k=3) # callable function
-    
-    if paramDict['APPLY_INTEGRAL_CONSTRAIN']:
-        ic = np.sum(obsRR * modelACF_spl(obsSep)) / np.sum(obsRR)
-    else:
-        ic = np.zeros(obsSep.shape[0])
 
-    modelACF   = modelACF_spl(obsSep) - ic
+    if not paramDict['MODEL_ONLY']:
+        modelACF_spl = spline(modelSep, modelACF, k=3) # callable function
+        outSep = obsSep
+
+        if paramDict['APPLY_INTEGRAL_CONSTRAIN']:
+            ic = np.sum(obsRR * modelACF_spl(obsSep)) / np.sum(obsRR)
+            outACF = modelACF_spl(obsSep) - ic
+        else:
+            ic = np.zeros(len(obsSep))
+            outACF = modelACF_spl(obsSep) - ic
+    else:
+        if paramDict['APPLY_INTEGRAL_CONSTRAIN']:
+            stdout("[ERROR] Need the input acf file (including RR counts) for the calculation of I.C.")
+            exit()
+        else:
+            outSep = modelSep
+            ic = np.zeros(len(modelSep))
+            outACF = modelACF
+
     modelNdens = h.mean_gal_den*(little_h**3)
     effBias    = h.bias_effective
     fsat       = h.satellite_fraction
@@ -186,15 +245,21 @@ if __name__ == '__main__':
     stdout('[MODEL] effective bias     = %f' % effBias)
     stdout('[MODEL] satellite fraction = %f' % fsat)
 
-    np.savetxt(paramDict['OUTPUT_ACF_PTS']+'.'+version+'.dat', np.c_[obsSep, modelACF, ic])
-    np.savetxt(paramDict['OUTPUT_HON_PTS']+'.'+version+'.dat', np.c_[np.log10(h.m), modelNtot, modelNcen, modelNsat])
+    np.savetxt(paramDict['OUTPUT_ACF_PTS']+'.'+version+'.dat', np.c_[outSep, outACF, ic],
+        header='# sep omega ic'
+    )
+    np.savetxt(paramDict['OUTPUT_HON_PTS']+'.'+version+'.dat', np.c_[np.log10(h.m), modelNtot, modelNcen, modelNsat],
+        header='# log(M) N_tot N_cen N_sat'
+    )
 
     if not paramDict['PTS_ONLY']:
+        stdout('[PLOTS] Additionally, output an ACF plot and a HON plot')
 
         # plot acf w/o obs. data
         plt.figure()
-        plt.plot(obsSep, modelACF, label='model (w/ I.C.)')
-        plt.errorbar(obsSep, obsACF, yerr=obsACFerr, fmt='o', label='data')
+        plt.plot(outSep, outACF, label='model (w/ I.C.)')
+        if not paramDict['MODEL_ONLY']:
+            plt.errorbar(obsSep, obsACF, yerr=obsACFerr, fmt='o', label='data')
         plt.xlabel('$\\theta\ [deg]$',  fontsize=20)
         plt.ylabel('$\omega(\\theta)$', fontsize=20)
         plt.legend(loc='best',          fontsize=15)
@@ -211,3 +276,5 @@ if __name__ == '__main__':
         plt.legend(loc='best',        fontsize=15)
         plt.loglog()
         plt.savefig(paramDict['OUTPUT_HON_PLOT'])
+
+    stdout('[END]')
