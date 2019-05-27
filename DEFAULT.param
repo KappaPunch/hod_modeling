@@ -82,15 +82,16 @@ alpha_min          0.7
 alpha_max          1.35
 sigma_min          0.25
 sigma_max          0.6
-# following parameters are used by Contreras13 model. Uncomment them if you need.
+# following parameters are used by Contreras13 model.
+# Fca, Fcb, Fs should be some values between 0 and 1
 log_Mc_min         10.
 log_Mc_max         13.
-Fca_min            0.02
-Fca_max            1.5
-Fcb_min            0.02
-Fcb_max            1.5
-Fs_min             0.8
-Fs_max             1.2
+Fca_min            0.0
+Fca_max            1.0
+Fcb_min            0.0
+Fcb_max            1.0
+Fs_min             0.0
+Fs_max             1.0
 delta_min          0.9
 delta_max          1.05
 x_min              0.9
