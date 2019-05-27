@@ -9,7 +9,7 @@
 # OUTPUT_MCMC_SAMPLES    : The fitting result file. The order of columns : # log_Mmin log_Msat alpha sigma log_Mcut
 # OUTPUT_DERIVED_SAMPLES : The derived parameter file. The order of columns : # fsat bias_eff Mh_eff ndens_model
 WORKING_DIRECTORY        /array/users/sclin/HALO/
-INPUT_ACF                demo_correlation_function.dat
+INPUT_ACF                demo_correlation_function.modified.dat
 INPUT_ZD                 demo_redshift_distribution.dat
 INPUT_COV                demo_fake_cov.dat
 OUTPUT_MCMC_SAMPLES      mcmc_sample_test
@@ -38,7 +38,7 @@ LITTLE_H_INCUSION          1
 # CONCENTRAION_TO_MASS_RELATION : The concentration to mass relation.
 VERSION                          v1
 COSMOLOGY                        Planck15 WMAP5 WMAP7 WMAP9 Planck13
-HOD_MODEL                        Zheng05
+HOD_MODEL                        Contreras13 Zheng05 Contreras13
 HALO_MASS_FUNCTION               Tinker10 Behroozi PS SMT Tinker08 Bhattacharya
 HALO_BIAS_FUNCTION               Tinker10 Mo96 Jing98 ST99 SMT01 Seljak04 Tinker05 Mandelbaum05 Manera10
 CONCENTRAION_TO_MASS_RELATION    Duffy08 Bullock01 Zehavi11 Ludlow2016
@@ -68,10 +68,10 @@ theta_num            60
 
 # radial separations of two galaxies under assumptions of Limber approx. and flat approx. Could check appendix of Coupon et al. 2012 (A&A, 542, A5)
 logu_min             -5.
-logu_max             2.5
+logu_max             1.0
 unum                 150
 
-# here are the range of priors.
+# here are the range of priors. please be awared that some of the parameters are used by both hod models.
 log_Mmin_min       11.
 log_Mmin_max       13.
 # the Msat should never be lower than Mmin that why there is no log_Msat_min. log_Msat_min will be set the same as log_Mmin, once latter is decided.
@@ -82,18 +82,31 @@ alpha_min          0.7
 alpha_max          1.35
 sigma_min          0.25
 sigma_max          0.6
+# following parameters are used by Contreras13 model. Uncomment them if you need.
+log_Mc_min         10.
+log_Mc_max         13.
+Fca_min            0.02
+Fca_max            1.5
+Fcb_min            0.02
+Fcb_max            1.5
+Fs_min             0.8
+Fs_max             1.2
+delta_min          0.9
+delta_max          1.05
+x_min              0.9
+x_max              1.05
 
 # === MCMC === 
 ## DOO:
 # mcmc_steps  : Number of MCMC steps. This term should be greater than 1000
-# Ndim        : Dimension of parameters. For standard HOD, it is 5
+# Ndim        : Dimension of parameters. For standard HOD, it is 5. As for Contreras13, it is 9.
 # Nwalkers    : Number of MCMC walkers (specially-defined parameter for emcee algorithm), should be greater than twice of Ndim.
 # sample_rate : Portion of full mcmc sample for calculating derived parameters (bias_eff, etc.), should be a positive integer factor of ndim * Nwalkers
 # burnin_rate : define how many portion of mcmc samples to be burn-in samples(will be disgared).
 # Nprocessors : Number of cores used in the fitting process.
 mcmc_steps  500
-Ndim        5
-Nwalkers    10
+Ndim        9
+Nwalkers    20
 sample_rate 10
 burnin_rate 0.25
-Nprocessors 10
+Nprocessors 1

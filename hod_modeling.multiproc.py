@@ -92,6 +92,7 @@ if __name__ == '__main__':
                 'logu_min':           -5.,
                 'logu_max':           2.5,
                 'unum':               150,
+                # parameters
                 'log_Mmin_min':       11.,
                 'log_Mmin_max':       13.,
                 'log_Msat_max':       14.,
@@ -100,6 +101,19 @@ if __name__ == '__main__':
                 'alpha_max':          1.35,
                 'sigma_min':          0.25,
                 'sigma_max':          0.6,
+                'log_Mc_min':         10.,
+                'log_Mc_max':         13.,
+                'Fca_min'   :         0.02,
+                'Fca_max'   :         1.5,
+                'Fcb_min'   :         0.02,
+                'Fcb_max'   :         1.5,
+                'Fs_min'    :         0.8,
+                'Fs_max'    :         1.2,
+                'delta_min' :         0.9,
+                'delta_max' :         1.05,
+                'x_min'     :         0.9,
+                'x_max'     :         1.05,
+
                 # MCMC settings
                 'mcmc_steps':         1500,
                 'Ndim':               5,
@@ -171,16 +185,34 @@ if __name__ == '__main__':
     ## ==build probability functions for mcmc (3) [_WED]==
     # Likelihood function in log scale
     def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict):
-        M_min, M_1, alpha, sig_logm, M_0 = th
-        h.update(hod_params={"M_min":    M_min + np.log10(little_h),
-                             "M_1":      M_1   + np.log10(little_h),
-                             "alpha":    alpha,
-                             "sig_logm": sig_logm,
-                             "M_0":      M_0   + np.log10(little_h)})
+
+        if paramDict['HOD_MODEL'] == 'Zheng05':
+            M_min, M_1, alpha, sig_logm, M_0 = th
+            h.update(hod_params={"M_min":    M_min + np.log10(little_h),
+                                 "M_1":      M_1   + np.log10(little_h),
+                                 "alpha":    alpha,
+                                 "sig_logm": sig_logm,
+                                 "M_0":      M_0   + np.log10(little_h)})
+
+        if paramDict['HOD_MODEL'] == 'Contreras13':
+            M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
+            h.update(hod_params={'M_min'    : M_c   + np.log10(little_h) ,
+                                 'M_1'      : M_min + np.log10(little_h) ,
+                                 'alpha'    : alpha                     ,
+                                 'sig_logm' : sig_logm                  ,
+                                 'fca'      : Fca                       ,
+                                 'fcb'      : Fcb                       ,
+                                 'fs'       : Fs                        ,
+                                 'delta'    : delta                     ,
+                                 'x'        : x       
+                                 })
         
         modelSep     = np.degrees(h.theta)
         modelACF     = h.angular_corr_gal
         modelACF_spl = spline(modelSep, modelACF, k=3) # callable function
+        #if np.isnan(modelACF).sum() > 0:
+        #    print 'there are Nans in model part'
+        #    print th
         
         if paramDict['APPLY_INTEGRAL_CONSTRAIN']:
             ic = np.sum(obsRR * modelACF_spl(obsSep)) / np.sum(obsRR)
@@ -202,24 +234,47 @@ if __name__ == '__main__':
         return lnACFLike + lnNdensLike
         
     # Prior probability function in log scale
-    def LnPrior(th, paramDict):
+    def LnPriorZheng(th, paramDict):
         M_min, M_1, alpha, sig_logm, M_0 = th
         
         if  paramDict['log_Mmin_min'] < M_min    < paramDict['log_Mmin_max'] and \
             M_min                     < M_1      < paramDict['log_Msat_max'] and \
-            paramDict['alpha_min']    < alpha    < paramDict['alpha_max'] and \
-            paramDict['sigma_min']    < sig_logm < paramDict['sigma_max'] and \
-            paramDict['log_Mcut_min'] < M_0      < M_1: 
+            paramDict['alpha_min'   ] < alpha    < paramDict['alpha_max'   ] and \
+            paramDict['sigma_min'   ] < sig_logm < paramDict['sigma_max'   ] and \
+            paramDict['log_Mcut_min'] < M_0      < M_1 : 
+            return 0.0
+        else:
+            return -np.inf
+
+    def LnPriorContreras(th, paramDict):
+        M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
+        
+        if  paramDict['log_Mc_min'  ] < M_c      < paramDict['log_Mc_max'  ] and \
+            paramDict['log_Mmin_min'] < M_min    < paramDict['log_Mmin_max'] and \
+            paramDict['alpha_min'   ] < alpha    < paramDict['alpha_max'   ] and \
+            paramDict['sigma_min'   ] < sig_logm < paramDict['sigma_max'   ] and \
+            paramDict['Fca_min'     ] < Fca      < paramDict['Fca_max'     ] and \
+            paramDict['Fcb_min'     ] < Fcb      < paramDict['Fcb_max'     ] and \
+            paramDict['Fs_min'      ] < Fs       < paramDict['Fs_max'      ] and \
+            paramDict['delta_min'   ] < delta    < paramDict['delta_max'   ] and \
+            paramDict['x_min'       ] < x        < paramDict['x_max'       ] :
             return 0.0
         else:
             return -np.inf
     
     # Log posterior
     def LnProb(th, obsSep, obsACF, obsRR, invCov, paramDict):
-        prior = LnPrior(th, paramDict)
+
+        if paramDict['HOD_MODEL'] == 'Zheng05':
+            prior = LnPriorZheng(th, paramDict)
+
+        if paramDict['HOD_MODEL'] == 'Contreras13':
+            prior = LnPriorContreras(th, paramDict)
+
         if not np.isfinite(prior):
             return -np.inf
         return prior + LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict)
+
     stdout('Probability functions are defined')
     ## ==functions defined==
     
@@ -232,26 +287,38 @@ if __name__ == '__main__':
     nprocessors  = paramDict['Nprocessors']
 
     ipoints = []
-    for i in range(nwalkers):
-        rand1 = random.uniform(paramDict['log_Mmin_min'], paramDict['log_Mmin_max'])
-        rand2 = random.uniform(rand1                    , paramDict['log_Msat_max'])
-        rand3 = random.uniform(paramDict['alpha_min']   , paramDict['alpha_max'])
-        rand4 = random.uniform(paramDict['sigma_min']   , paramDict['sigma_max'])
-        rand5 = random.uniform(paramDict['log_Mcut_min'], rand2)
-        ipoints.append([rand1,rand2,rand3,rand4,rand5])
+
+    if paramDict['HOD_MODEL'] == 'Zheng05':
+        for i in range(nwalkers):
+            rand1 = random.uniform(paramDict['log_Mmin_min'], paramDict['log_Mmin_max'])
+            rand2 = random.uniform(rand1                    , paramDict['log_Msat_max'])
+            rand3 = random.uniform(paramDict['alpha_min']   , paramDict['alpha_max'])
+            rand4 = random.uniform(paramDict['sigma_min']   , paramDict['sigma_max'])
+            rand5 = random.uniform(paramDict['log_Mcut_min'], rand2)
+            ipoints.append([rand1,rand2,rand3,rand4,rand5])
+    
+    if paramDict['HOD_MODEL'] == 'Contreras13':
+        for i in range(nwalkers):
+            rand1 = random.uniform(paramDict['log_Mc_min'  ], paramDict['log_Mc_max'  ])
+            rand2 = random.uniform(paramDict['log_Mmin_min'], paramDict['log_Mmin_max'])
+            rand3 = random.uniform(paramDict['alpha_min'   ], paramDict['alpha_max'   ])
+            rand4 = random.uniform(paramDict['sigma_min'   ], paramDict['sigma_max'   ])
+            rand5 = random.uniform(paramDict['Fca_min'     ], paramDict['Fca_max'     ])
+            rand6 = random.uniform(paramDict['Fcb_min'     ], paramDict['Fcb_max'     ])
+            rand7 = random.uniform(paramDict['Fs_min'      ], paramDict['Fs_max'      ])
+            rand8 = random.uniform(paramDict['delta_min'   ], paramDict['delta_max'   ])
+            rand9 = random.uniform(paramDict['x_min'       ], paramDict['x_max'       ])
+            ipoints.append([rand1,rand2,rand3,rand4,rand5,rand6,rand7,rand8,rand9])
+
     stdout('Initialized mcmc points')
     ## ==done==
     
     ## ==main part for running mcmc (5) [_FRI]==
-    obsNdens = paramDict['obs_number_density']
-    obsNdensErr = paramDict['err_obs_ndens']
-
     pool = InterruptiblePool(processes=nprocessors)
     sampler = emcee.EnsembleSampler(
         nwalkers,
         ndim,
         LnProb,
-        #args=(obsSep, obsACF, obsRR, invCov, paramDict['obs_number_density'], paramDict['err_obs_ndens']),
         args=(obsSep, obsACF, obsRR, invCov, paramDict),
         pool=pool
     )
@@ -260,8 +327,8 @@ if __name__ == '__main__':
     t1 = time.time()
     sampler.run_mcmc(ipoints, mcmcNumSteps) 
     t2 = time.time()
-    print 'MCMC Finished'
-    print 'MCMC took '+str(np.floor((t2-t1)/60))+' minutes' # Prints how long the MCMC fitting took
+    stdout('MCMC Finished')
+    stdout('MCMC took '+str(np.floor((t2-t1)/60))+' minutes')
     pool.close()
     
     nBurnin = int(mcmcNumSteps*burninRate)
@@ -280,11 +347,26 @@ if __name__ == '__main__':
     
     for i in range(nsamples):
         
-        h.update(hod_params={"M_min"    : samples[i*sampleRate, 0]+np.log10(little_h),
-                             "M_1"      : samples[i*sampleRate, 1]+np.log10(little_h),
-                             "alpha"    : samples[i*sampleRate, 2]                   ,
-                             "sig_logm" : samples[i*sampleRate, 3]                   ,
-                             "M_0"      : samples[i*sampleRate, 4]+np.log10(little_h)})
+        if paramDict['HOD_MODEL'] == 'Zheng05':
+            h.update(hod_params={"M_min"    : samples[i*sampleRate, 0] + np.log10(little_h) ,
+                                 "M_1"      : samples[i*sampleRate, 1] + np.log10(little_h) ,
+                                 "alpha"    : samples[i*sampleRate, 2]                      ,
+                                 "sig_logm" : samples[i*sampleRate, 3]                      ,
+                                 "M_0"      : samples[i*sampleRate, 4] + np.log10(little_h)
+                                 })
+
+        if paramDict['HOD_MODEL'] == 'Contreras13':
+            h.update(hod_params={'M_min'    : samples[i*sampleRate, 0] + np.log10(little_h) ,
+                                 'M_1'      : samples[i*sampleRate, 1] + np.log10(little_h) ,
+                                 'alpha'    : samples[i*sampleRate, 2]                      ,
+                                 'sig_logm' : samples[i*sampleRate, 3]                      ,
+                                 'fca'      : samples[i*sampleRate, 4]                      ,
+                                 'fcb'      : samples[i*sampleRate, 5]                      ,
+                                 'fs'       : samples[i*sampleRate, 6]                      ,
+                                 'delta'    : samples[i*sampleRate, 7]                      ,
+                                 'x'        : samples[i*sampleRate, 8]
+                                 })
+
         
         modelSep     = np.degrees(h.theta)
         modelACF     = h.angular_corr_gal
@@ -323,7 +405,7 @@ if __name__ == '__main__':
     derrived_parameters = np.transpose([fsatDistr, effBiasDistr, effMassDistr, nDensModelDistr])
     np.savetxt(wd+paramsFilename+version+".dat", derrived_parameters)
     
-    model_acf = np.transpose([model_lower,model_best,model_upper])
+    model_acf = np.transpose([modelACF_lower,modelACF_best,modelACF_upper])
     np.savetxt(wd+acfModelFilename+version+".dat",model_acf) # Save model acfs
 
     ##################################
