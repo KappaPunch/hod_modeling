@@ -12,6 +12,7 @@ from astropy.cosmology import default_cosmology
 
 ## ==HALO MODEL & FITTING MODULES==
 import halomod as hm
+from halomod.integrate_corr import angular_corr_gal
 
 # sections in main() function
 # (1) [_MON]: load in tables
@@ -209,31 +210,50 @@ if __name__ == '__main__':
                              'x'        : paramDict['x'       ]
                              })
     
-    modelm       = h.m/little_h
-    modelNcen    = h.n_cen
-    modelNsat    = h.n_sat
-    modelNtot    = h.n_tot
-    modelSep     = np.degrees(h.theta)
-    modelACF     = h.angular_corr_gal
+    # get results from halomod
+    modelm       = h.m/little_h                 # mass variable
+    modelNcen    = h.n_cen                      # central part of occupation number
+    modelNsat    = h.n_sat                      # satellite part of occupation number
+    modelNtot    = h.n_tot                      # total occupation number (central + satellite)
+    modelSep     = np.degrees(h.theta)          # theta variable (separation)
+    modelACF     = h.angular_corr_gal           # angular correlation function
+    modelACF_spl = spline(modelSep, modelACF)   # a callable function of acf
+
+    modelSepTerm_spl_list = []
+    for corr in [h.corr_gg_1h_cs, h.corr_gg_1h_ss, h.corr_gg_1h, h.corr_gg_2h]:
+        corr_spl = spline(h.r, corr) # a callable function of 1-halo term of '3-d' correlation function
+        angular  = angular_corr_gal(h.theta, corr_spl       ,
+                                    redshift_distribution   ,
+                                    paramDict['z_min']      ,
+                                    paramDict['z_max']      ,
+                                    paramDict['logu_min']   ,
+                                    paramDict['logu_max']   ,
+                                    paramDict['z_num']      ,
+                                    paramDict['unum']       ,
+                                    cosmo=cosmo_model
+                                    ) # angular correlation function of 1-halo '3-d' correlation function
+        modelSepTerm_spl_list.append(spline(np.degrees(h.theta), angular))
+
 
     if not paramDict['MODEL_ONLY']:
-        modelACF_spl = spline(modelSep, modelACF, k=3) # callable function
         outSep = obsSep
-
         if paramDict['APPLY_INTEGRAL_CONSTRAIN']:
             ic = np.sum(obsRR * modelACF_spl(obsSep)) / np.sum(obsRR)
-            outACF = modelACF_spl(obsSep) - ic
         else:
-            ic = np.zeros(len(obsSep))
-            outACF = modelACF_spl(obsSep) - ic
+            ic = 0.
     else:
+        outSep = modelSep
         if paramDict['APPLY_INTEGRAL_CONSTRAIN']:
             stdout("[ERROR] Need the input acf file (including RR counts) for the calculation of I.C.")
             exit()
         else:
-            outSep = modelSep
-            ic = np.zeros(len(modelSep))
-            outACF = modelACF
+            ic = 0.
+
+    outACF    = modelACF_spl(outSep) - ic
+    outACF_cs = modelSepTerm_spl_list[0](outSep) - ic
+    outACF_ss = modelSepTerm_spl_list[1](outSep) - ic
+    outACF_1h = modelSepTerm_spl_list[2](outSep) - ic
+    outACF_2h = modelSepTerm_spl_list[3](outSep) - ic
 
     modelNdens = h.mean_gal_den*(little_h**3)
     effBias    = h.bias_effective
@@ -245,8 +265,16 @@ if __name__ == '__main__':
     stdout('[MODEL] effective bias     = %f' % effBias)
     stdout('[MODEL] satellite fraction = %f' % fsat)
 
-    np.savetxt(paramDict['OUTPUT_ACF_PTS']+'.'+version+'.dat', np.c_[outSep, outACF, ic],
-        header='# sep omega ic'
+    np.savetxt(paramDict['OUTPUT_ACF_PTS']+'.'+version+'.dat',
+               np.c_[outSep, outACF, outACF_cs, outACF_ss, outACF_1h, outACF_2h],
+               header = '--- Derived parameters ---\n'                               +\
+                        'number density     = %f <h^3/Mpc^3>\n' % modelNdens         +\
+                        'effective mass     = %f <Msun/h> in log scales\n' % effMass +\
+                        'effective bias     = %f\n' % effBias                        +\
+                        'satellite fraction = %f\n' % fsat                           +\
+                        'IC                 = %.4f\n' % ic                           +\
+                        '\n'                                                         +\
+                        'sep(deg) omega 1h_cs 1h_ss 1h 2h'
     )
     np.savetxt(paramDict['OUTPUT_HON_PTS']+'.'+version+'.dat', np.c_[np.log10(h.m), modelNtot, modelNcen, modelNsat],
         header='# log(M) N_tot N_cen N_sat'
@@ -257,14 +285,16 @@ if __name__ == '__main__':
 
         # plot acf w/o obs. data
         plt.figure()
-        plt.plot(outSep, outACF, label='model (w/ I.C.)')
+        plt.plot(outSep, outACF,    '-',  label='overall (w/ I.C.)')
+        plt.plot(outSep, outACF_1h, '--', label='1-halo (w/ I.C.)')
+        plt.plot(outSep, outACF_2h, '--', label='2-halo (w/ I.C.)')
         if not paramDict['MODEL_ONLY']:
             plt.errorbar(obsSep, obsACF, yerr=obsACFerr, fmt='o', label='data')
         plt.xlabel('$\\theta\ [deg]$',  fontsize=20)
         plt.ylabel('$\omega(\\theta)$', fontsize=20)
         plt.legend(loc='best',          fontsize=15)
         plt.loglog()
-        plt.savefig(paramDict['OUTPUT_ACF_PLOT'])
+        plt.savefig(paramDict['OUTPUT_ACF_PLOT']+'.'+version+'.png')
 
         # plot hon
         plt.figure()
@@ -275,6 +305,6 @@ if __name__ == '__main__':
         plt.ylabel('$HON$',           fontsize=20)
         plt.legend(loc='best',        fontsize=15)
         plt.loglog()
-        plt.savefig(paramDict['OUTPUT_HON_PLOT'])
+        plt.savefig(paramDict['OUTPUT_HON_PLOT']+'.'+version+'.png')
 
     stdout('[END]')
