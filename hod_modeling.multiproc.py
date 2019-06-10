@@ -338,7 +338,8 @@ if __name__ == '__main__':
     ## ==done mcmc==
     
     ## ==now start to derive some parameters (6) [_SAT]==
-    nsamples = nwalkers*mcmcNumSteps/sampleRate
+    #nsamples = nwalkers*mcmcNumSteps/sampleRate
+    nsamples = samples.shape[0]/sampleRate
     modelACFDistr   = np.zeros(shape=(len(obsSep), nsamples))
     effBiasDistr    = np.zeros(nsamples)
     effMassDistr    = np.zeros(nsamples)
@@ -400,13 +401,13 @@ if __name__ == '__main__':
     
     ## ==save all derived parameters to file (7) [_SUN]==
     
-    np.savetxt(wd+mcmcFilename+version+".dat", samples) # Save HOD param samples
+    np.savetxt(wd+mcmcFilename+'.'+version+".dat", samples) # Save HOD param samples
     
     derrived_parameters = np.transpose([fsatDistr, effBiasDistr, effMassDistr, nDensModelDistr])
-    np.savetxt(wd+paramsFilename+version+".dat", derrived_parameters)
+    np.savetxt(wd+paramsFilename+'.'+version+".dat", derrived_parameters)
     
     model_acf = np.transpose([modelACF_lower,modelACF_best,modelACF_upper])
-    np.savetxt(wd+acfModelFilename+version+".dat",model_acf) # Save model acfs
+    np.savetxt(wd+acfModelFilename+'.'+version+".dat",model_acf) # Save model acfs
 
     ##################################
     ##### end of main() function #####
