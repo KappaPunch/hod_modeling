@@ -2,11 +2,12 @@
 
 ## ==STANDARD MODULES==
 import random
-import time, sys
+import time, sys, re
 import numpy as np
 from scipy.interpolate import\
     InterpolatedUnivariateSpline as spline
 from astropy.cosmology import default_cosmology
+from collections import OrderedDict
 
 ## ==HALO MODEL & FITTING MODULES==
 import halomod as hm
@@ -36,25 +37,86 @@ if __name__ == '__main__':
     
         diffFromInit = set(params.keys()).difference(fileParamsDict.keys())
         diffFromInit = list(diffFromInit)
+
+        # this list contains hod parameters specifying the range of input parameters,
+        # these parameters are flexible enough to accept numerical variables or alphabetic ones.
+        if fileParamsDict['HOD_MODEL'] == 'Zheng05':
+            flexParams, _ = FlexParameters()
+            flexParamsName = flexParams.keys()
+        if fileParamsDict['HOD_MODEL'] == 'Contreras13':
+            _, flexParams = FlexParameters()
+            flexParamsName = flexParams.keys()
     
         for pname, pvalue in params.items():
             if pname in diffFromInit:
+                # if a parameter is not found in the file,
+                # this code will take the default value set in
+                # InitializeParameters() function
                 pass
             else:
-                params[pname] = fileParamsDict[pname].astype(type(pvalue))
+                if pname in flexParamsName: # check those flexible parameters
+                    if ParamIsAlphabetic(fileParamsDict[pname]):
+                        params[pname] = fileParamsDict[pname]
+                    else:
+                        params[pname] = fileParamsDict[pname].astype(type(pvalue))
+                else:
+                    params[pname] = fileParamsDict[pname].astype(type(pvalue))
     
         return params
     
     def GetParamFilename():
     
         if len(sys.argv) == 2:
-            stdout('read parameter file: %s ' % sys.argv[1])
+            stdout('[FILE] read parameter file: %s ' % sys.argv[1])
             return sys.argv[1]
         else:
             sys.exit(
                 '%s... please input a parameter file by using command : \
                 $python halo_modeling [YOUR_PARAMETER_FILES]' % sys.argv[0]
             )
+
+    def _checkFlexParams(paramDict):
+        mainDict, flexDict = paramDict
+
+        ZhengParams = ['log_Mmin', 'log_Msat', 'alpha', 'sigma', 'log_Mcut']
+        ContrParams = ['log_Mc', 'log_Mmin', 'alpha', 'sigma', 'Fca', 'Fcb',
+                       'Fs', 'delta', 'x']
+
+        for key, valueList in flexDict:
+            if mainDict[key] != key:
+                break
+        return
+        
+    def CheckConstantFlex(paramDict):
+        mainDict, flexDict = paramDict
+
+        premade = {}
+
+        for key, valuelist in flexDict.items():
+            if np.abs(mainDict[valuelist[0]] - mainDict[valuelist[1]]) < 1e-5:
+                premade[key] = mainDict[valuelist[0]]
+            else:
+                premade[key] = -99.
+
+        return premade
+
+
+    def FlexParameters():
+
+        return OrderedDict([ ('log_Mmin' , ['log_Mmin_min' , 'log_Mmin_max']),
+                             ('log_Msat' , ['log_Msat_min' , 'log_Msat_max']),
+                             ('alpha'    , ['alpha_min'    , 'alpha_max'   ]),
+                             ('sigma'    , ['sigma_min'    , 'sigma_max'   ]),
+                             ('log_Mcut' , ['log_Mcut_min' , 'log_Mcut_max'])]),\
+               OrderedDict([ ('log_Mc'   , ['log_Mc_min'   , 'log_Mc_max'  ]) ,
+                             ('log_Mmin' , ['log_Mmin_min' , 'log_Mmin_max']) ,
+                             ('alpha'    , ['alpha_min'    , 'alpha_max'   ]) ,
+                             ('sigma'    , ['sigma_min'    , 'sigma_max'   ]) ,
+                             ('Fca'      , ['Fca_min'      , 'Fca_max'     ]) ,
+                             ('Fcb'      , ['Fcb_min'      , 'Fcb_max'     ]) ,
+                             ('Fs'       , ['Fs_min'       , 'Fs_max'      ]) ,
+                             ('delta'    , ['delta_min'    , 'delta_max'   ]) ,
+                             ('x'        , ['x_min'        , 'x_max'       ])])
     
     def InitializeParameters():
     
@@ -95,8 +157,10 @@ if __name__ == '__main__':
                 # parameters
                 'log_Mmin_min':       11.,
                 'log_Mmin_max':       13.,
+                'log_Msat_min':       13.,
                 'log_Msat_max':       14.,
                 'log_Mcut_min':       9.,
+                'log_Mcut_max':       10.,
                 'alpha_min':          0.7,
                 'alpha_max':          1.35,
                 'sigma_min':          0.25,
@@ -113,7 +177,18 @@ if __name__ == '__main__':
                 'delta_max' :         1.05,
                 'x_min'     :         0.9,
                 'x_max'     :         1.05,
-
+                # parameter flags
+                'log_Mmin' : 'log_Mmin' ,
+                'log_Msat' : 'log_Msat' ,
+                'log_Mcut' : 'log_Mcut' ,
+                'alpha'    : 'alpha'    ,
+                'sigma'    : 'sigma'    ,
+                'log_Mc'   : 'log_Mc'   ,
+                'Fca'      : 'Fca'      ,
+                'Fcb'      : 'Fcb'      ,
+                'Fs'       : 'Fs'       ,
+                'delta'    : 'delta'    ,
+                'x'        : 'x'        ,
                 # MCMC settings
                 'mcmc_steps':         1500,
                 'Ndim':               5,
@@ -122,15 +197,37 @@ if __name__ == '__main__':
                 'burnin_rate':        0.25,
                 'Nprocessors':        1
                }
-    
+
+    def ParamIsAlphabetic(string):
+        # this function will check if the 1st characters of the string is
+        # alphabetic
+
+        return bool(re.search('^[a-zA-z]', string))
+
     def stdout(message):
+
         print('%s...  %s' % (sys.argv[0], message))
 
+    # load in parameters from .param file
     paramDict = GetParams()
+    
+    # initialize flex parameter dictionary
+    if paramDict['HOD_MODEL'] == 'Zheng05':
+        flexParamDict, _ = FlexParameters()
+    if paramDict['HOD_MODEL'] == 'Contreras13':
+        _, flexParamDict = FlexParameters()
 
+    hodParDictPremade = CheckConstantFlex([paramDict, flexParamDict])
+    if sum(np.array(hodParDictPremade.values())<0) != paramDict['Ndim']:
+        stdout("[ERROR] Dimension of fitting parameters are not equal to"+\
+               " 'Ndim' parameter")
+        sys.exit("TERMINATED")
+
+    # declare version
     version = paramDict['VERSION']
     stdout("Version : %s" % version)
 
+    # initialize filenames             
     wd               = paramDict['WORKING_DIRECTORY']
     corrFilename     = paramDict['INPUT_ACF']
     rdFilename       = paramDict['INPUT_ZD']
@@ -183,8 +280,14 @@ if __name__ == '__main__':
     ## ==halo model established==
 
     ## ==build probability functions for mcmc (3) [_WED]==
+
     # Likelihood function in log scale
-    def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict):
+    def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
+        for ik, key in enumerate(premade.keys()):
+            if premade[key] < 0:
+                premade[key] = th[ik]
+
+        h.update(hod_params = premade)
 
         if paramDict['HOD_MODEL'] == 'Zheng05':
             M_min, M_1, alpha, sig_logm, M_0 = th
@@ -210,9 +313,6 @@ if __name__ == '__main__':
         modelSep     = np.degrees(h.theta)
         modelACF     = h.angular_corr_gal
         modelACF_spl = spline(modelSep, modelACF, k=3) # callable function
-        #if np.isnan(modelACF).sum() > 0:
-        #    print 'there are Nans in model part'
-        #    print th
         
         if paramDict['APPLY_INTEGRAL_CONSTRAIN']:
             ic = np.sum(obsRR * modelACF_spl(obsSep)) / np.sum(obsRR)
@@ -234,34 +334,37 @@ if __name__ == '__main__':
         return lnACFLike + lnNdensLike
         
     # Prior probability function in log scale
-    def LnPriorZheng(th, paramDict):
-        M_min, M_1, alpha, sig_logm, M_0 = th
-        
-        if  paramDict['log_Mmin_min'] < M_min    < paramDict['log_Mmin_max'] and \
-            M_min                     < M_1      < paramDict['log_Msat_max'] and \
-            paramDict['alpha_min'   ] < alpha    < paramDict['alpha_max'   ] and \
-            paramDict['sigma_min'   ] < sig_logm < paramDict['sigma_max'   ] and \
-            paramDict['log_Mcut_min'] < M_0      < M_1 : 
-            return 0.0
-        else:
-            return -np.inf
+    def LnPrior(th, paramDict):
+        mainDict, flexDict = paramDict
 
-    def LnPriorContreras(th, paramDict):
-        M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
-        
-        if  paramDict['log_Mc_min'  ] < M_c      < paramDict['log_Mc_max'  ] and \
-            paramDict['log_Mmin_min'] < M_min    < paramDict['log_Mmin_max'] and \
-            paramDict['alpha_min'   ] < alpha    < paramDict['alpha_max'   ] and \
-            paramDict['sigma_min'   ] < sig_logm < paramDict['sigma_max'   ] and \
-            paramDict['Fca_min'     ] < Fca      < paramDict['Fca_max'     ] and \
-            paramDict['Fcb_min'     ] < Fcb      < paramDict['Fcb_max'     ] and \
-            paramDict['Fs_min'      ] < Fs       < paramDict['Fs_max'      ] and \
-            paramDict['delta_min'   ] < delta    < paramDict['delta_max'   ] and \
-            paramDict['x_min'       ] < x        < paramDict['x_max'       ] :
-            return 0.0
-        else:
-            return -np.inf
-    
+        if mainDict['HOD_MODEL'] == 'Zheng05':
+            #M_min, M_1, alpha, sig_logm, M_0 = th
+            
+            if  paramDict['log_Mmin_min'] < th[0] < paramDict['log_Mmin_max'] and \
+                M_min                     < th[1] < paramDict['log_Msat_max'] and \
+                paramDict['alpha_min'   ] < th[2] < paramDict['alpha_max'   ] and \
+                paramDict['sigma_min'   ] < th[3] < paramDict['sigma_max'   ] and \
+                paramDict['log_Mcut_min'] < th[4] < M_1 : 
+                return 0.0
+            else:
+                return -np.inf
+
+        if mainDict['HOD_MODEL'] == 'Contreras13':
+            M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
+            
+            if  paramDict['log_Mc_min'  ] < M_c      < paramDict['log_Mc_max'  ] and \
+                paramDict['log_Mmin_min'] < M_min    < paramDict['log_Mmin_max'] and \
+                paramDict['alpha_min'   ] < alpha    < paramDict['alpha_max'   ] and \
+                paramDict['sigma_min'   ] < sig_logm < paramDict['sigma_max'   ] and \
+                paramDict['Fca_min'     ] < Fca      < paramDict['Fca_max'     ] and \
+                paramDict['Fcb_min'     ] < Fcb      < paramDict['Fcb_max'     ] and \
+                paramDict['Fs_min'      ] < Fs       < paramDict['Fs_max'      ] and \
+                paramDict['delta_min'   ] < delta    < paramDict['delta_max'   ] and \
+                paramDict['x_min'       ] < x        < paramDict['x_max'       ] :
+                return 0.0
+            else:
+                return -np.inf
+
     # Log posterior
     def LnProb(th, obsSep, obsACF, obsRR, invCov, paramDict):
 
@@ -338,12 +441,14 @@ if __name__ == '__main__':
     ## ==done mcmc==
     
     ## ==now start to derive some parameters (6) [_SAT]==
-    nsamples = nwalkers*mcmcNumSteps/sampleRate
-    modelACFDistr   = np.zeros(shape=(len(obsSep), nsamples))
-    effBiasDistr    = np.zeros(nsamples)
-    effMassDistr    = np.zeros(nsamples)
-    fsatDistr       = np.zeros(nsamples)
-    nDensModelDistr = np.zeros(nsamples)
+    #nsamples = nwalkers*mcmcNumSteps/sampleRate
+    nsamples = samples.shape[0]/sampleRate
+    modelACFDistr       = np.zeros(shape=(len(obsSep), nsamples))
+    modelACFCompDistr   = np.zeros(shape=(4, len(obsSep), nsamples))
+    effBiasDistr        = np.zeros(nsamples)
+    effMassDistr        = np.zeros(nsamples)
+    fsatDistr           = np.zeros(nsamples)
+    nDensModelDistr     = np.zeros(nsamples)
     
     for i in range(nsamples):
         
@@ -384,17 +489,42 @@ if __name__ == '__main__':
         fsatDistr[i]       = h.satellite_fraction
         effMassDistr[i]    = h.mass_effective-np.log10(little_h)
         nDensModelDistr[i] = h.mean_gal_den*(little_h**3)
+
+        for ic, corr in enumerate[h.corr_gg_1h_cs, h.corr_gg_1h_ss, h.corr_gg_1h, h.corr_gg_2h]:
+            corr_spl = spline(h.r, corr) # a callable function of 1-halo term of '3-d' correlation function
+            angular  = angular_corr_gal(h.theta, corr_spl       ,
+                                        redshift_distribution   ,
+                                        paramDict['z_min']      ,
+                                        paramDict['z_max']      ,
+                                        paramDict['logu_min']   ,
+                                        paramDict['logu_max']   ,
+                                        paramDict['z_num']      ,
+                                        paramDict['unum']       ,
+                                        cosmo=cosmo_model
+                                        ) # angular correlation function of 1-halo '3-d' correlation function
+            ang_spl = spline(np.degrees(h.theta), angular)
+            modelACFCompDistr[ic,:,i] = ang_spl(outSep) - ic
+
     
     # Create objects for holding the models
     modelACF_best  = np.zeros(len(obsSep))
     modelACF_lower = np.zeros(len(obsSep))
     modelACF_upper = np.zeros(len(obsSep))
+
+    modelACFComp_best  = np.zeros((4, len(obsSep)))
+    modelACFComp_lower = np.zeros((4, len(obsSep)))
+    modelACFComp_upper = np.zeros((4, len(obsSep)))
     
     # Find percentiles of acf
     for i in range(len(obsSep)):
         modelACF_best[i]  = np.percentile(modelACFDistr[i,:],50)
         modelACF_lower[i] = np.percentile(modelACFDistr[i,:],16)
         modelACF_upper[i] = np.percentile(modelACFDistr[i,:],84)
+
+        for j in range(4):
+            modelACFComp_best[j, i]  = np.percentile(modelACFCompDistr[j,i,:], 50)
+            modelACFComp_lower[j, i] = np.percentile(modelACFCompDistr[j,i,:], 50)
+            modelACFComp_upper[j, i] = np.percentile(modelACFCompDistr[j,i,:], 50)
     ## ==parameters are derived==
     
     
@@ -405,8 +535,19 @@ if __name__ == '__main__':
     derrived_parameters = np.transpose([fsatDistr, effBiasDistr, effMassDistr, nDensModelDistr])
     np.savetxt(wd+paramsFilename+version+".dat", derrived_parameters)
     
-    model_acf = np.transpose([modelACF_lower,modelACF_best,modelACF_upper])
-    np.savetxt(wd+acfModelFilename+version+".dat",model_acf) # Save model acfs
+    model_acf = np.transpose([obsSep,
+                              modelACF_lower       , modelACF_best       , modelACF_upper       ,
+                              modelACFComp_lower[0], modelACFComp_best[0], modelACFComp_upper[0],
+                              modelACFComp_lower[1], modelACFComp_best[1], modelACFComp_upper[1],
+                              modelACFComp_lower[2], modelACFComp_best[2], modelACFComp_upper[2],
+                              modelACFComp_lower[3], modelACFComp_best[3], modelACFComp_upper[3]])
+    np.savetxt(wd+acfModelFilename+version+".dat",
+               model_acf,
+               header='sep tot_low tot_best tot_up'+\
+                      ' cs_low cs_best cs_up'      +\
+                      ' ss_low ss_best ss_up'      +\
+                      ' 1h_low 1h_best 1h_up'      +\
+                      ' 2h_low 2h_best 2h_up') # Save model acfs
 
     ##################################
     ##### end of main() function #####
