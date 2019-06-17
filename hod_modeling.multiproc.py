@@ -282,12 +282,13 @@ if __name__ == '__main__':
     ## ==build probability functions for mcmc (3) [_WED]==
 
     # Likelihood function in log scale
-    def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
-        for ik, key in enumerate(premade.keys()):
-            if premade[key] < 0:
-                premade[key] = th[ik]
+    #def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
+    def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict):
+        #for ik, key in enumerate(premade.keys()):
+        #    if premade[key] < 0:
+        #        premade[key] = th[ik]
 
-        h.update(hod_params = premade)
+        #h.update(hod_params = premade)
 
         if paramDict['HOD_MODEL'] == 'Zheng05':
             M_min, M_1, alpha, sig_logm, M_0 = th
@@ -335,9 +336,10 @@ if __name__ == '__main__':
         
     # Prior probability function in log scale
     def LnPrior(th, paramDict):
-        mainDict, flexDict = paramDict
+        #mainDict, flexDict = paramDict
 
-        if mainDict['HOD_MODEL'] == 'Zheng05':
+        #if mainDict['HOD_MODEL'] == 'Zheng05':
+        if paramDict['HOD_MODEL'] == 'Zheng05':
             #M_min, M_1, alpha, sig_logm, M_0 = th
             
             if  paramDict['log_Mmin_min'] < th[0] < paramDict['log_Mmin_max'] and \
@@ -349,7 +351,8 @@ if __name__ == '__main__':
             else:
                 return -np.inf
 
-        if mainDict['HOD_MODEL'] == 'Contreras13':
+        #if mainDict['HOD_MODEL'] == 'Contreras13':
+        if paramDict['HOD_MODEL'] == 'Contreras13':
             M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
             
             if  paramDict['log_Mc_min'  ] < M_c      < paramDict['log_Mc_max'  ] and \
