@@ -11,6 +11,7 @@ from collections import OrderedDict
 
 ## ==HALO MODEL & FITTING MODULES==
 import halomod as hm
+from halomod.integrate_corr import angular_corr_gal
 import emcee
 from emcee.interruptible_pool import InterruptiblePool
 
@@ -103,18 +104,20 @@ if __name__ == '__main__':
 
     def FlexParameters():
 
-        return OrderedDict([ ('log_Mmin' , ['log_Mmin_min' , 'log_Mmin_max']),
-                             ('log_Msat' , ['log_Msat_min' , 'log_Msat_max']),
+               # Zheng05. Orders: log_Mmin, log_Msat, alpha, sigma, log_Mcut
+               # Contreras13. Order: log_Mc, log_Mmin, alpha, sigma, Fca, Fcb, Fs, delta, x
+        return OrderedDict([ ('M_min'    , ['log_Mmin_min' , 'log_Mmin_max']),
+                             ('M_1'      , ['log_Msat_min' , 'log_Msat_max']),
                              ('alpha'    , ['alpha_min'    , 'alpha_max'   ]),
-                             ('sigma'    , ['sigma_min'    , 'sigma_max'   ]),
-                             ('log_Mcut' , ['log_Mcut_min' , 'log_Mcut_max'])]),\
-               OrderedDict([ ('log_Mc'   , ['log_Mc_min'   , 'log_Mc_max'  ]) ,
-                             ('log_Mmin' , ['log_Mmin_min' , 'log_Mmin_max']) ,
+                             ('sig_logm' , ['sigma_min'    , 'sigma_max'   ]),
+                             ('M_0'      , ['log_Mcut_min' , 'log_Mcut_max'])]),\
+               OrderedDict([ ('M_min'    , ['log_Mc_min'   , 'log_Mc_max'  ]) ,
+                             ('M_1'      , ['log_Mmin_min' , 'log_Mmin_max']) ,
                              ('alpha'    , ['alpha_min'    , 'alpha_max'   ]) ,
-                             ('sigma'    , ['sigma_min'    , 'sigma_max'   ]) ,
-                             ('Fca'      , ['Fca_min'      , 'Fca_max'     ]) ,
-                             ('Fcb'      , ['Fcb_min'      , 'Fcb_max'     ]) ,
-                             ('Fs'       , ['Fs_min'       , 'Fs_max'      ]) ,
+                             ('sig_logm' , ['sigma_min'    , 'sigma_max'   ]) ,
+                             ('fca'      , ['Fca_min'      , 'Fca_max'     ]) ,
+                             ('fca'      , ['Fcb_min'      , 'Fcb_max'     ]) ,
+                             ('fs'       , ['Fs_min'       , 'Fs_max'      ]) ,
                              ('delta'    , ['delta_min'    , 'delta_max'   ]) ,
                              ('x'        , ['x_min'        , 'x_max'       ])])
     
@@ -282,33 +285,32 @@ if __name__ == '__main__':
     ## ==build probability functions for mcmc (3) [_WED]==
 
     # Likelihood function in log scale
-    #def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
-    def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict):
-        #for ik, key in enumerate(premade.keys()):
-        #    if premade[key] < 0:
-        #        premade[key] = th[ik]
+    def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
+        for ik, key in enumerate(premade.keys()):
+            if premade[key] < 0:
+                premade[key] = th[ik]
 
         #h.update(hod_params = premade)
 
         if paramDict['HOD_MODEL'] == 'Zheng05':
             M_min, M_1, alpha, sig_logm, M_0 = th
-            h.update(hod_params={"M_min":    M_min + np.log10(little_h),
-                                 "M_1":      M_1   + np.log10(little_h),
-                                 "alpha":    alpha,
-                                 "sig_logm": sig_logm,
-                                 "M_0":      M_0   + np.log10(little_h)})
+            h.update(hod_params={"M_min":    premade['M_min'] + np.log10(little_h),
+                                 "M_1":      premade['M_1  '] + np.log10(little_h),
+                                 "alpha":    premade['alpha']                     ,
+                                 "sig_logm": premade['sig_logm']                  ,
+                                 "M_0":      premade['M_0  '] + np.log10(little_h)})
 
         if paramDict['HOD_MODEL'] == 'Contreras13':
             M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
-            h.update(hod_params={'M_min'    : M_c   + np.log10(little_h) ,
-                                 'M_1'      : M_min + np.log10(little_h) ,
-                                 'alpha'    : alpha                     ,
-                                 'sig_logm' : sig_logm                  ,
-                                 'fca'      : Fca                       ,
-                                 'fcb'      : Fcb                       ,
-                                 'fs'       : Fs                        ,
-                                 'delta'    : delta                     ,
-                                 'x'        : x       
+            h.update(hod_params={'M_min'    : premade['M_c   ']+ np.log10(little_h) ,
+                                 'M_1'      : premade['M_min ']+ np.log10(little_h) ,
+                                 'alpha'    : premade['alpha ']                    ,
+                                 'sig_logm' : premade['sig_logm']                  ,
+                                 'fca'      : premade['Fca   ']                    ,
+                                 'fcb'      : premade['Fcb   ']                    ,
+                                 'fs'       : premade['Fs    ']                    ,
+                                 'delta'    : premade['delta ']                    ,
+                                 'x'        : premade['x     ']  
                                  })
         
         modelSep     = np.degrees(h.theta)
@@ -335,7 +337,7 @@ if __name__ == '__main__':
         return lnACFLike + lnNdensLike
         
     # Prior probability function in log scale
-    def LnPrior(th, paramDict):
+    def LnPrior(th, paramDict, premade):
         #mainDict, flexDict = paramDict
 
         #if mainDict['HOD_MODEL'] == 'Zheng05':
@@ -343,10 +345,10 @@ if __name__ == '__main__':
             #M_min, M_1, alpha, sig_logm, M_0 = th
             
             if  paramDict['log_Mmin_min'] < th[0] < paramDict['log_Mmin_max'] and \
-                M_min                     < th[1] < paramDict['log_Msat_max'] and \
+                premade['M_min']          < th[1] < paramDict['log_Msat_max'] and \
                 paramDict['alpha_min'   ] < th[2] < paramDict['alpha_max'   ] and \
                 paramDict['sigma_min'   ] < th[3] < paramDict['sigma_max'   ] and \
-                paramDict['log_Mcut_min'] < th[4] < M_1 : 
+                paramDict['log_Mcut_min'] < th[4] < premade['M_1'] : 
                 return 0.0
             else:
                 return -np.inf
@@ -369,13 +371,14 @@ if __name__ == '__main__':
                 return -np.inf
 
     # Log posterior
-    def LnProb(th, obsSep, obsACF, obsRR, invCov, paramDict):
+    def LnProb(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
 
-        if paramDict['HOD_MODEL'] == 'Zheng05':
-            prior = LnPriorZheng(th, paramDict)
+        #if paramDict['HOD_MODEL'] == 'Zheng05':
+        #    prior = LnPriorZheng(th, paramDict)
 
-        if paramDict['HOD_MODEL'] == 'Contreras13':
-            prior = LnPriorContreras(th, paramDict)
+        #if paramDict['HOD_MODEL'] == 'Contreras13':
+        #    prior = LnPriorContreras(th, paramDict)
+        prior = LnPrior(th, paramDict, premade)
 
         if not np.isfinite(prior):
             return -np.inf
@@ -425,7 +428,7 @@ if __name__ == '__main__':
         nwalkers,
         ndim,
         LnProb,
-        args=(obsSep, obsACF, obsRR, invCov, paramDict),
+        args=(obsSep, obsACF, obsRR, invCov, paramDict, hodParDictPremade),
         pool=pool
     )
     stdout('MCMC sampler is created')
@@ -493,7 +496,7 @@ if __name__ == '__main__':
         effMassDistr[i]    = h.mass_effective-np.log10(little_h)
         nDensModelDistr[i] = h.mean_gal_den*(little_h**3)
 
-        for ic, corr in enumerate[h.corr_gg_1h_cs, h.corr_gg_1h_ss, h.corr_gg_1h, h.corr_gg_2h]:
+        for ii, corr in enumerate([h.corr_gg_1h_cs, h.corr_gg_1h_ss, h.corr_gg_1h, h.corr_gg_2h]):
             corr_spl = spline(h.r, corr) # a callable function of 1-halo term of '3-d' correlation function
             angular  = angular_corr_gal(h.theta, corr_spl       ,
                                         redshift_distribution   ,
@@ -506,7 +509,7 @@ if __name__ == '__main__':
                                         cosmo=cosmo_model
                                         ) # angular correlation function of 1-halo '3-d' correlation function
             ang_spl = spline(np.degrees(h.theta), angular)
-            modelACFCompDistr[ic,:,i] = ang_spl(outSep) - ic
+            modelACFCompDistr[ii,:,i] = ang_spl(obsSep) - ic
 
     
     # Create objects for holding the models
@@ -533,10 +536,10 @@ if __name__ == '__main__':
     
     ## ==save all derived parameters to file (7) [_SUN]==
     
-    np.savetxt(wd+mcmcFilename+version+".dat", samples) # Save HOD param samples
+    np.savetxt(wd+mcmcFilename+'.'+version+".dat", samples) # Save HOD param samples
     
     derrived_parameters = np.transpose([fsatDistr, effBiasDistr, effMassDistr, nDensModelDistr])
-    np.savetxt(wd+paramsFilename+version+".dat", derrived_parameters)
+    np.savetxt(wd+paramsFilename+'.'+version+".dat", derrived_parameters)
     
     model_acf = np.transpose([obsSep,
                               modelACF_lower       , modelACF_best       , modelACF_upper       ,
@@ -544,7 +547,7 @@ if __name__ == '__main__':
                               modelACFComp_lower[1], modelACFComp_best[1], modelACFComp_upper[1],
                               modelACFComp_lower[2], modelACFComp_best[2], modelACFComp_upper[2],
                               modelACFComp_lower[3], modelACFComp_best[3], modelACFComp_upper[3]])
-    np.savetxt(wd+acfModelFilename+version+".dat",
+    np.savetxt(wd+acfModelFilename+'.'+version+".dat",
                model_acf,
                header='sep tot_low tot_best tot_up'+\
                       ' cs_low cs_best cs_up'      +\
