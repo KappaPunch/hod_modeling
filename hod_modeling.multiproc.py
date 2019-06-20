@@ -91,7 +91,7 @@ if __name__ == '__main__':
     def CheckConstantFlex(paramDict):
         mainDict, flexDict = paramDict
 
-        premade = {}
+        premade = OrderedDict()
 
         for key, valuelist in flexDict.items():
             if np.abs(mainDict[valuelist[0]] - mainDict[valuelist[1]]) < 1e-5:
@@ -226,6 +226,7 @@ if __name__ == '__main__':
                " 'Ndim' parameter")
         sys.exit("TERMINATED")
 
+
     # declare version
     version = paramDict['VERSION']
     stdout("Version : %s" % version)
@@ -295,22 +296,22 @@ if __name__ == '__main__':
         if paramDict['HOD_MODEL'] == 'Zheng05':
             M_min, M_1, alpha, sig_logm, M_0 = th
             h.update(hod_params={"M_min":    premade['M_min'] + np.log10(little_h),
-                                 "M_1":      premade['M_1  '] + np.log10(little_h),
+                                 "M_1":      premade['M_1']   + np.log10(little_h),
                                  "alpha":    premade['alpha']                     ,
                                  "sig_logm": premade['sig_logm']                  ,
-                                 "M_0":      premade['M_0  '] + np.log10(little_h)})
+                                 "M_0":      premade['M_0'] + np.log10(little_h)})
 
         if paramDict['HOD_MODEL'] == 'Contreras13':
             M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
-            h.update(hod_params={'M_min'    : premade['M_c   ']+ np.log10(little_h) ,
-                                 'M_1'      : premade['M_min ']+ np.log10(little_h) ,
-                                 'alpha'    : premade['alpha ']                    ,
+            h.update(hod_params={'M_min'    : premade['M_c']+ np.log10(little_h) ,
+                                 'M_1'      : premade['M_min']+ np.log10(little_h) ,
+                                 'alpha'    : premade['alpha']                    ,
                                  'sig_logm' : premade['sig_logm']                  ,
-                                 'fca'      : premade['Fca   ']                    ,
-                                 'fcb'      : premade['Fcb   ']                    ,
-                                 'fs'       : premade['Fs    ']                    ,
-                                 'delta'    : premade['delta ']                    ,
-                                 'x'        : premade['x     ']  
+                                 'fca'      : premade['Fca']                    ,
+                                 'fcb'      : premade['Fcb']                    ,
+                                 'fs'       : premade['Fs']                    ,
+                                 'delta'    : premade['delta']                    ,
+                                 'x'        : premade['x']  
                                  })
         
         modelSep     = np.degrees(h.theta)
@@ -345,10 +346,10 @@ if __name__ == '__main__':
             #M_min, M_1, alpha, sig_logm, M_0 = th
             
             if  paramDict['log_Mmin_min'] < th[0] < paramDict['log_Mmin_max'] and \
-                premade['M_min']          < th[1] < paramDict['log_Msat_max'] and \
+                th[0]                     < th[1] < paramDict['log_Msat_max'] and \
                 paramDict['alpha_min'   ] < th[2] < paramDict['alpha_max'   ] and \
                 paramDict['sigma_min'   ] < th[3] < paramDict['sigma_max'   ] and \
-                paramDict['log_Mcut_min'] < th[4] < premade['M_1'] : 
+                paramDict['log_Mcut_min'] < th[4] < th[1] : 
                 return 0.0
             else:
                 return -np.inf
@@ -382,7 +383,7 @@ if __name__ == '__main__':
 
         if not np.isfinite(prior):
             return -np.inf
-        return prior + LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict)
+        return prior + LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict, premade)
 
     stdout('Probability functions are defined')
     ## ==functions defined==
@@ -447,6 +448,7 @@ if __name__ == '__main__':
     ## ==done mcmc==
     
     ## ==now start to derive some parameters (6) [_SAT]==
+    stdout('Start derived parameters')
     #nsamples = nwalkers*mcmcNumSteps/sampleRate
     nsamples = samples.shape[0]/sampleRate
     modelACFDistr       = np.zeros(shape=(len(obsSep), nsamples))
@@ -535,6 +537,7 @@ if __name__ == '__main__':
     
     
     ## ==save all derived parameters to file (7) [_SUN]==
+    stdout('Save results to files')
     
     np.savetxt(wd+mcmcFilename+'.'+version+".dat", samples) # Save HOD param samples
     
@@ -555,6 +558,7 @@ if __name__ == '__main__':
                       ' 1h_low 1h_best 1h_up'      +\
                       ' 2h_low 2h_best 2h_up') # Save model acfs
 
+    stdout('END')
     ##################################
     ##### end of main() function #####
     ##################################
