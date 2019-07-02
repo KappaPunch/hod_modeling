@@ -95,17 +95,16 @@ if __name__ == '__main__':
 
         for key, valuelist in flexDict.items():
             if np.abs(mainDict[valuelist[0]] - mainDict[valuelist[1]]) < 1e-5:
-                premade[key] = mainDict[valuelist[0]]
+                premade[key] = [valuelist[0], valuelist[1], mainDict[valuelist[0]]]
             else:
-                premade[key] = -99.
+                premade[key] = [valuelist[0], valuelist[1], -99.]
 
         return premade
 
 
     def FlexParameters():
-
-               # Zheng05. Orders: log_Mmin, log_Msat, alpha, sigma, log_Mcut
-               # Contreras13. Order: log_Mc, log_Mmin, alpha, sigma, Fca, Fcb, Fs, delta, x
+        # Zheng05. Orders: log_Mmin, log_Msat, alpha, sigma, log_Mcut
+        # Contreras13. Order: log_Mc, log_Mmin, alpha, sigma, Fca, Fcb, Fs, delta, x
         return OrderedDict([ ('M_min'    , ['log_Mmin_min' , 'log_Mmin_max']),
                              ('M_1'      , ['log_Msat_min' , 'log_Msat_max']),
                              ('alpha'    , ['alpha_min'    , 'alpha_max'   ]),
@@ -125,80 +124,71 @@ if __name__ == '__main__':
     
         return {
                 # FILES
-                'WORKING_DIRECTORY':      'YOUR_WORKING_DIRECTORY',
-                'INPUT_ACF':              'YOUR_CORRELATION_FILE',
-                'INPUT_ZD':               'YOUR_REDSHIFT_DISTRIBUTION',
-                'INPUT_COV':              'YOUR_COVARIANCE_MATRIX',
-                'OUTPUT_MCMC_SAMPLES':    'MCMC_CHAIN_SAMPLE',
-                'OUTPUT_ACF_SAMPLES':     'BEST_FIT_ACF_SAMPLE',
-                'OUTPUT_DERIVED_SAMPLES': 'DERIVED_PARAMETER_SAMPLE',
+                'WORKING_DIRECTORY'      : 'YOUR_WORKING_DIRECTORY'         ,
+                'INPUT_ACF'              : 'YOUR_CORRELATION_FILE'          ,
+                'INPUT_ZD'               : 'YOUR_REDSHIFT_DISTRIBUTION'     ,
+                'INPUT_COV'              : 'YOUR_COVARIANCE_MATRIX'         ,
+                'OUTPUT_MCMC_SAMPLES'    : 'MCMC_CHAIN_SAMPLE'              ,
+                'OUTPUT_ACF_SAMPLES'     : 'BEST_FIT_ACF_SAMPLE'            ,
+                'OUTPUT_DERIVED_SAMPLES' : 'DERIVED_PARAMETER_SAMPLE'       ,
                 # MODELS
-                'VERSION':                       'v1',
-                'COSMOLOGY':                     'Planck15',
-                'HOD_MODEL':                     'Zheng05',
-                'HALO_MASS_FUNCTION':            'Tinker10',
-                'HALO_BIAS_FUNCTION':            'Tinker10',
-                'CONCENTRAION_TO_MASS_RELATION': 'Duffy08',
+                'VERSION'                       : 'v1'          ,
+                'COSMOLOGY'                     : 'Planck15'    ,
+                'HOD_MODEL'                     : 'Zheng05'     ,
+                'HALO_MASS_FUNCTION'            : 'Tinker10'    ,
+                'HALO_BIAS_FUNCTION'            : 'Tinker10'    ,
+                'CONCENTRAION_TO_MASS_RELATION' : 'Duffy08'     ,
                 # SWITCHES
-                'APPLY_INTEGRAL_CONSTRAIN': True,
-                'LITTLE_H_INCUSION':        True,
+                'APPLY_INTEGRAL_CONSTRAIN' : True     ,
+                'LITTLE_H_INCUSION'        : True     ,
                 # HOD settings
-                'obs_number_density': 0.0005,
-                'err_obs_ndens':      0.00002,
-                'z_mean':             1.12,
-                'z_min':              1.0,
-                'z_max':              1.25,
-                'z_num':              100,
-                'logM_min':           6,
-                'logM_max':           16,
-                'theta_min':          1./3600.,
-                'theta_max':          3600./3600.,
-                'theta_num':          60,
-                'logu_min':           -5.,
-                'logu_max':           2.5,
-                'unum':               150,
+                'obs_number_density' : 0.0005         ,
+                'err_obs_ndens'      : 0.00002        ,
+                'z_mean'             : 1.12           ,
+                'z_min'              : 1.0            ,
+                'z_max'              : 1.25           ,
+                'z_num'              : 100            ,
+                'logM_min'           : 6              ,
+                'logM_max'           : 16             ,
+                'theta_min'          : 1./3600.       ,
+                'theta_max'          : 3600./3600.    ,
+                'theta_num'          : 60             ,
+                'rmin'               : 1e-5           ,
+                'rmax'               : 300            ,
+                'rnum'               : 500            ,
+                'logu_min'           : -5.            ,
+                'logu_max'           : 2.5            ,
+                'unum'               : 150            ,
                 # parameters
-                'log_Mmin_min':       11.,
-                'log_Mmin_max':       13.,
-                'log_Msat_min':       13.,
-                'log_Msat_max':       14.,
-                'log_Mcut_min':       9.,
-                'log_Mcut_max':       10.,
-                'alpha_min':          0.7,
-                'alpha_max':          1.35,
-                'sigma_min':          0.25,
-                'sigma_max':          0.6,
-                'log_Mc_min':         10.,
-                'log_Mc_max':         13.,
-                'Fca_min'   :         0.02,
-                'Fca_max'   :         1.5,
-                'Fcb_min'   :         0.02,
-                'Fcb_max'   :         1.5,
-                'Fs_min'    :         0.8,
-                'Fs_max'    :         1.2,
-                'delta_min' :         0.9,
-                'delta_max' :         1.05,
-                'x_min'     :         0.9,
-                'x_max'     :         1.05,
-                # parameter flags
-                'log_Mmin' : 'log_Mmin' ,
-                'log_Msat' : 'log_Msat' ,
-                'log_Mcut' : 'log_Mcut' ,
-                'alpha'    : 'alpha'    ,
-                'sigma'    : 'sigma'    ,
-                'log_Mc'   : 'log_Mc'   ,
-                'Fca'      : 'Fca'      ,
-                'Fcb'      : 'Fcb'      ,
-                'Fs'       : 'Fs'       ,
-                'delta'    : 'delta'    ,
-                'x'        : 'x'        ,
+                'log_Mmin_min'       : 11.    ,
+                'log_Mmin_max'       : 13.    ,
+                'log_Msat_min'       : 6.     , # this is just a bogus number, should keep it small enough
+                'log_Msat_max'       : 14.    ,
+                'log_Mcut_min'       : 9.     ,
+                'log_Mcut_max'       : 20.    , # this is also a bogus number, should keep it large enough
+                'alpha_min'          : 0.7    ,
+                'alpha_max'          : 1.35   ,
+                'sigma_min'          : 0.25   ,
+                'sigma_max'          : 0.6    ,
+                'log_Mc_min'         : 10.    ,
+                'log_Mc_max'         : 13.    ,
+                'Fca_min'            : 0.02   ,
+                'Fca_max'            : 1.5    ,
+                'Fcb_min'            : 0.02   ,
+                'Fcb_max'            : 1.5    ,
+                'Fs_min'             : 0.8    ,
+                'Fs_max'             : 1.2    ,
+                'delta_min'          : 0.9    ,
+                'delta_max'          : 1.05   ,
+                'x_min'              : 0.9    ,
+                'x_max'              : 1.05   ,
                 # MCMC settings
-                'mcmc_steps':         1500,
-                'Ndim':               5,
-                'Nwalkers':           20,
-                'sample_rate':        10,
-                'burnin_rate':        0.25,
-                'Nprocessors':        1
+                'mcmc_steps'         : 1500  ,
+                'Ndim'               : 5     ,
+                'Nwalkers'           : 20    ,
+                'sample_rate'        : 10    ,
+                'burnin_rate'        : 0.25  ,
+                'Nprocessors'        : 1
                }
 
     def ParamIsAlphabetic(string):
@@ -221,11 +211,11 @@ if __name__ == '__main__':
         _, flexParamDict = FlexParameters()
 
     hodParDictPremade = CheckConstantFlex([paramDict, flexParamDict])
-    if sum(np.array(hodParDictPremade.values())<0) != paramDict['Ndim']:
+
+    if sum(np.array(hodParDictPremade.values())[:,2].astype('float')<0) != paramDict['Ndim']:
         stdout("[ERROR] Dimension of fitting parameters are not equal to"+\
                " 'Ndim' parameter")
         sys.exit("TERMINATED")
-
 
     # declare version
     version = paramDict['VERSION']
@@ -272,6 +262,9 @@ if __name__ == '__main__':
     h.update(logu_min            =    paramDict['logu_min'])
     h.update(logu_max            =    paramDict['logu_max'])
     h.update(unum                =    paramDict['unum'])
+    h.update(rmin                =    paramDict['rmin'])
+    h.update(rmax                =    paramDict['rmax'])
+    h.update(rnum                =    paramDict['rnum'])
 
     cosmo_model = default_cosmology.get_cosmology_from_string(paramDict['COSMOLOGY'])
     h.update(cosmo_model         =    cosmo_model)
@@ -280,40 +273,34 @@ if __name__ == '__main__':
         little_h = h.cosmo.H0.value/100.
     else:
         little_h = 1.
+
+    # corrected the units of all parameters related to halo mass by little h
+    paramDict['log_Mmin_min'] = paramDict['log_Mmin_min'] - np.log10(little_h)
+    paramDict['log_Mmin_max'] = paramDict['log_Mmin_max'] - np.log10(little_h)
+    paramDict['log_Msat_max'] = paramDict['log_Msat_max'] - np.log10(little_h)
+    paramDict['log_Mcut_min'] = paramDict['log_Mcut_min'] - np.log10(little_h)
+    paramDict['log_Mc_min']   = paramDict['log_Mc_min']   - np.log10(little_h)
+    paramDict['log_Mc_max']   = paramDict['log_Mc_max']   - np.log10(little_h)
+
     stdout('Halo model is established')
     ## ==halo model established==
 
     ## ==build probability functions for mcmc (3) [_WED]==
-
+    
     # Likelihood function in log scale
     def LnLikeli(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
-        for ik, key in enumerate(premade.keys()):
-            if premade[key] < 0:
-                premade[key] = th[ik]
-
-        #h.update(hod_params = premade)
-
-        if paramDict['HOD_MODEL'] == 'Zheng05':
-            M_min, M_1, alpha, sig_logm, M_0 = th
-            h.update(hod_params={"M_min":    premade['M_min'] + np.log10(little_h),
-                                 "M_1":      premade['M_1']   + np.log10(little_h),
-                                 "alpha":    premade['alpha']                     ,
-                                 "sig_logm": premade['sig_logm']                  ,
-                                 "M_0":      premade['M_0'] + np.log10(little_h)})
-
-        if paramDict['HOD_MODEL'] == 'Contreras13':
-            M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
-            h.update(hod_params={'M_min'    : premade['M_c']+ np.log10(little_h) ,
-                                 'M_1'      : premade['M_min']+ np.log10(little_h) ,
-                                 'alpha'    : premade['alpha']                    ,
-                                 'sig_logm' : premade['sig_logm']                  ,
-                                 'fca'      : premade['Fca']                    ,
-                                 'fcb'      : premade['Fcb']                    ,
-                                 'fs'       : premade['Fs']                    ,
-                                 'delta'    : premade['delta']                    ,
-                                 'x'        : premade['x']  
-                                 })
         
+        ik = 0
+        tmpDict = {}
+        for key, val in premade.items():
+            if val[2] < 0:
+                tmpDict[key] = th[ik]
+                ik += 1
+            else:
+                tmpDict[key] = val[2]
+
+        h.update(hod_params = tmpDict)
+
         modelSep     = np.degrees(h.theta)
         modelACF     = h.angular_corr_gal
         modelACF_spl = spline(modelSep, modelACF, k=3) # callable function
@@ -331,19 +318,60 @@ if __name__ == '__main__':
         lnNdensLike = -0.5 * ((modelNdens - paramDict['obs_number_density'])/paramDict['err_obs_ndens']) *\
                              ((modelNdens - paramDict['obs_number_density'])/paramDict['err_obs_ndens'])
     
-        #obsACF_model_difference_trans = np.transpose(obsACF_model_difference)
-        #log_liklihood_clustering = -0.5 * (obsACF_model.dot(cov_matrix_inverse.dot(obsACF_model_trans)))
-        #log_L_acf = -0.5 * np.sum(np.power((obsACF - model)/obsACFerr, 2.))
-        #log_L_n   = -0.5 * np.power((model_num_density - obsNdens)/obsNdensErr, 2.)
         return lnACFLike + lnNdensLike
         
     # Prior probability function in log scale
-    def LnPrior(th, paramDict, premade):
-        #mainDict, flexDict = paramDict
+    # ugly coding here...
+    def LnPriorZheng05(th, paramDict, premade):
 
-        #if mainDict['HOD_MODEL'] == 'Zheng05':
+        ik = 0
+        tmp, tmp2 = 1.0, 2.0
+        for key, val in premade.items():
+
+            # first check the non-constant parameters are within the range of prior
+            if val[2] < 0.:
+                if paramDict[val[0]] > th[ik] or paramDict[val[1]] < th[ik] :
+                    return -np.inf
+
+                # For Zheng05 model, we set some criteria between parameters; therefore,
+                # we need to store some values to temporary variables...
+                if key == 'M_min' :
+                    tmp   = th[ik]
+                if key == 'M_1'   :
+                    tmp2  = th[ik]
+
+                if key == 'M_0' and tmp2 < th[ik]:
+                    return -np.inf
+
+                ik += 1
+            
+            else: # if the parameter is a constant
+                if key == 'M_min' : tmp   = val[2]
+                if key == 'M_1'   : tmp2  = val[2]
+
+                if key == 'M_0' and tmp2 < val[2]:
+                    return -np.inf
+                
+            # finally, check if M_1 is greater than M_min
+            if paramDict['Ndim'] == ik and tmp2 < tmp:
+                return -np.inf
+
+        return 0.0
+
+    def LnPriorContreras13(th, paramDict, premade):
+
+        ik = 0
+        for key, val in premade.items():
+            if val[2] < 0.:
+                if paramDict[val[0]] > th[ik] or paramDict[val[1]] < th[ik] :
+                    return -np.inf
+                ik += 1
+
+        return 0.0
+
+    def oldLnPrior(th, paramDict, premade):
+
         if paramDict['HOD_MODEL'] == 'Zheng05':
-            #M_min, M_1, alpha, sig_logm, M_0 = th
             
             if  paramDict['log_Mmin_min'] < th[0] < paramDict['log_Mmin_max'] and \
                 th[0]                     < th[1] < paramDict['log_Msat_max'] and \
@@ -354,7 +382,6 @@ if __name__ == '__main__':
             else:
                 return -np.inf
 
-        #if mainDict['HOD_MODEL'] == 'Contreras13':
         if paramDict['HOD_MODEL'] == 'Contreras13':
             M_c, M_min, alpha, sig_logm, Fca, Fcb, Fs, delta, x = th
             
@@ -374,12 +401,10 @@ if __name__ == '__main__':
     # Log posterior
     def LnProb(th, obsSep, obsACF, obsRR, invCov, paramDict, premade):
 
-        #if paramDict['HOD_MODEL'] == 'Zheng05':
-        #    prior = LnPriorZheng(th, paramDict)
-
-        #if paramDict['HOD_MODEL'] == 'Contreras13':
-        #    prior = LnPriorContreras(th, paramDict)
-        prior = LnPrior(th, paramDict, premade)
+        if paramDict['HOD_MODEL'] == 'Zheng05':
+            prior = LnPriorZheng05(th, paramDict, premade)
+        if paramDict['HOD_MODEL'] == 'Contreras13':
+            prior = LnPriorContreras13(th, paramDict, premade)
 
         if not np.isfinite(prior):
             return -np.inf
@@ -396,29 +421,39 @@ if __name__ == '__main__':
     burninRate   = paramDict['burnin_rate']
     nprocessors  = paramDict['Nprocessors']
 
-    ipoints = []
-
+    ik = 0
+    ipoints = np.random.rand(nwalkers, ndim)
     if paramDict['HOD_MODEL'] == 'Zheng05':
-        for i in range(nwalkers):
-            rand1 = random.uniform(paramDict['log_Mmin_min'], paramDict['log_Mmin_max'])
-            rand2 = random.uniform(rand1                    , paramDict['log_Msat_max'])
-            rand3 = random.uniform(paramDict['alpha_min']   , paramDict['alpha_max'])
-            rand4 = random.uniform(paramDict['sigma_min']   , paramDict['sigma_max'])
-            rand5 = random.uniform(paramDict['log_Mcut_min'], rand2)
-            ipoints.append([rand1,rand2,rand3,rand4,rand5])
-    
+        for key, val in hodParDictPremade.items():
+            if val[2] < 0:
+                if key == 'M_1':
+                    if hodParDictPremade['M_min'][2] > 0:
+                        interc = hodParDictPremade['M_min'][2]
+                    else:
+                        interc = ipoints[:,0]
+                    slope = paramDict[val[1]] - interc
+
+                elif key == 'M_0':
+                    interc = paramDict[val[0]]
+                    if hodParDictPremade['M_1'][2] > 0:
+                        slope = hodParDictPremade['M_1'][2] - interc
+                    else:
+                        slope = ipoints[:,1] - interc
+
+                else:
+                    slope   = paramDict[hodParDictPremade[key][1]] - paramDict[hodParDictPremade[key][0]]
+                    interc  = paramDict[hodParDictPremade[key][0]]
+
+                ipoints[:,ik] = slope * ipoints[:,ik] + interc
+                ik += 1
+
     if paramDict['HOD_MODEL'] == 'Contreras13':
-        for i in range(nwalkers):
-            rand1 = random.uniform(paramDict['log_Mc_min'  ], paramDict['log_Mc_max'  ])
-            rand2 = random.uniform(paramDict['log_Mmin_min'], paramDict['log_Mmin_max'])
-            rand3 = random.uniform(paramDict['alpha_min'   ], paramDict['alpha_max'   ])
-            rand4 = random.uniform(paramDict['sigma_min'   ], paramDict['sigma_max'   ])
-            rand5 = random.uniform(paramDict['Fca_min'     ], paramDict['Fca_max'     ])
-            rand6 = random.uniform(paramDict['Fcb_min'     ], paramDict['Fcb_max'     ])
-            rand7 = random.uniform(paramDict['Fs_min'      ], paramDict['Fs_max'      ])
-            rand8 = random.uniform(paramDict['delta_min'   ], paramDict['delta_max'   ])
-            rand9 = random.uniform(paramDict['x_min'       ], paramDict['x_max'       ])
-            ipoints.append([rand1,rand2,rand3,rand4,rand5,rand6,rand7,rand8,rand9])
+        for key in hodParDictPremade.keys():
+            if hodParDictPremade[key][2] < 0:
+                slope   = paramDict[hodParDictPremade[key][1]] - paramDict[hodParDictPremade[key][0]]
+                interc  = paramDict[hodParDictPremade[key][0]]
+                ipoints[:,ik] = slope * ipoints[:,ik] + interc
+                ik += 1
 
     stdout('Initialized mcmc points')
     ## ==done==
@@ -449,7 +484,6 @@ if __name__ == '__main__':
     
     ## ==now start to derive some parameters (6) [_SAT]==
     stdout('Start derived parameters')
-    #nsamples = nwalkers*mcmcNumSteps/sampleRate
     nsamples = samples.shape[0]/sampleRate
     modelACFDistr       = np.zeros(shape=(len(obsSep), nsamples))
     modelACFCompDistr   = np.zeros(shape=(4, len(obsSep), nsamples))
@@ -457,20 +491,26 @@ if __name__ == '__main__':
     effMassDistr        = np.zeros(nsamples)
     fsatDistr           = np.zeros(nsamples)
     nDensModelDistr     = np.zeros(nsamples)
+
+    ik = 0
+    for key, val in hodParDictPremade.items():
+        if val[2] >= 0:
+            samples = np.insert(samples, ik, val[2], axis=1)
+        ik += 1
     
     for i in range(nsamples):
         
         if paramDict['HOD_MODEL'] == 'Zheng05':
-            h.update(hod_params={"M_min"    : samples[i*sampleRate, 0] + np.log10(little_h) ,
-                                 "M_1"      : samples[i*sampleRate, 1] + np.log10(little_h) ,
-                                 "alpha"    : samples[i*sampleRate, 2]                      ,
-                                 "sig_logm" : samples[i*sampleRate, 3]                      ,
-                                 "M_0"      : samples[i*sampleRate, 4] + np.log10(little_h)
+            h.update(hod_params={"M_min"    : samples[i*sampleRate, 0], # + np.log10(little_h) ,
+                                 "M_1"      : samples[i*sampleRate, 1], # + np.log10(little_h) ,
+                                 "alpha"    : samples[i*sampleRate, 2], #                      ,
+                                 "sig_logm" : samples[i*sampleRate, 3], #                      ,
+                                 "M_0"      : samples[i*sampleRate, 4]  # + np.log10(little_h)
                                  })
 
         if paramDict['HOD_MODEL'] == 'Contreras13':
-            h.update(hod_params={'M_min'    : samples[i*sampleRate, 0] + np.log10(little_h) ,
-                                 'M_1'      : samples[i*sampleRate, 1] + np.log10(little_h) ,
+            h.update(hod_params={'M_min'    : samples[i*sampleRate, 0] , #+ np.log10(little_h) ,
+                                 'M_1'      : samples[i*sampleRate, 1] , #+ np.log10(little_h) ,
                                  'alpha'    : samples[i*sampleRate, 2]                      ,
                                  'sig_logm' : samples[i*sampleRate, 3]                      ,
                                  'fca'      : samples[i*sampleRate, 4]                      ,
