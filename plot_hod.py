@@ -110,7 +110,10 @@ if __name__ == '__main__':
                 'theta_min'          : 1./3600.    ,
                 'theta_max'          : 3600./3600. ,
                 'theta_num'          : 60          ,
-                'logu_min'           : -5.         ,
+                'rmin'               : -5.         ,
+                'rmax'               : 100.        ,
+                'rnum'               : 500.        ,
+                'logu_min'           : -3.         ,
                 'logu_max'           : 2.5         ,
                 'unum'               : 150         ,
                 'log_Mmin'           : 12.2        , # this term will be double-used
@@ -180,6 +183,18 @@ if __name__ == '__main__':
     h.update(logu_min            =    paramDict['logu_min'])
     h.update(logu_max            =    paramDict['logu_max'])
     h.update(unum                =    paramDict['unum'])
+    h.update(rmin                =    paramDict['rmin'])
+    h.update(rmax                =    paramDict['rmax'])
+    h.update(rnum                =    paramDict['rnum'])
+
+
+    if h.rmin > h.r.min():
+        rmin_modified = h.r.min()
+        h.update(rmin = rmin_modified)
+    if h.rmax < h.r.max():
+        rmax_modified = h.r.max()
+        h.update(rmax = rmax_modified+5.)
+
 
     cosmo_model = default_cosmology.get_cosmology_from_string(paramDict['COSMOLOGY'])
     h.update(cosmo_model         =    cosmo_model)

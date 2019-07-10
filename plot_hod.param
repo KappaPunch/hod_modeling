@@ -11,7 +11,7 @@
 # OUTPUT_ACF_PTS         : The modeled ACF file. The columns are : theta omega(theta) IC(theta)
 # OUTPUT_HON_PLOT        : This also give you a glimpse of how Halo Occupation Numbers look like.
 # OUTPUT_HON_PTS         : The HON file. The columns are: log(M_h) N_tot N_cen N_sat
-WORKING_DIRECTORY        /array/users/sclin/HALO/
+WORKING_DIRECTORY        /home/kappalin/HALO/
 INPUT_ACF                demo_correlation_function.dat
 INPUT_COV                demo_fake_cov.dat
 INPUT_ZD                 demo_redshift_distribution.dat
@@ -29,7 +29,7 @@ OUTPUT_HON_PTS           hon_pts_test
 # APPLY_INTEGRAL_CONSTRAIN : The ACF is corrected by I.C. or not. If True, then the RR information must be provided for calculating I.C.
 #                            If False, the code will assume that the ACF has been corrected by I.C.
 # LITTLE_H_INCUSION        : All quantities set in this config file included the little_h or not. True for units like <Msun/h>; False for <Msun>, etc.
-PTS_ONLY                   0
+PTS_ONLY                   1
 MODEL_ONLY                 1
 APPLY_INTEGRAL_CONSTRAIN   0
 LITTLE_H_INCUSION          1
@@ -47,7 +47,7 @@ LITTLE_H_INCUSION          1
 # CONCENTRAION_TO_MASS_RELATION : The concentration to mass relation.
 # REDSHIFT_DISTR                : Set 'User' for user-provided redshift distribution file. The code also provides two types of distribution.
 # 								  Flat for the uniform; Gaussian will take z_mean as the mean and z_sig as the std.
-VERSION                          check_flat
+VERSION                          4
 COSMOLOGY                        Planck15 WMAP5 WMAP7 WMAP9 Planck13
 HOD_MODEL                        Zheng05 Contreras13
 HALO_MASS_FUNCTION               Tinker10 Behroozi PS SMT Tinker08 Bhattacharya
@@ -79,10 +79,14 @@ theta_min            0.00027
 theta_max            1.
 theta_num            60
 
+rmin                 0.00001
+rmax                 20000.
+rnum                 150
+
 # radial separations of two galaxies under assumptions of Limber approx. and flat approx. Could check appendix of Coupon et al. 2012 (A&A, 542, A5)
 logu_min             -5.
-logu_max             1.
-unum                 500
+logu_max             4.
+unum                 150
 
 # hod parameters
 # For Zheng05 model, these parameters are required: log_Mmin, log_Msat, log_Mcut, alpha, sigma
